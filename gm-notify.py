@@ -21,7 +21,7 @@
 #
 import pynotify, indicate
 import gtk, gobject
-import os, sys
+import sys, subprocess
 import gettext
 import gmailatom, keyring
 
@@ -60,6 +60,7 @@ class CheckMail():
         self.server = indicate.indicate_server_ref_default()
         self.server.set_type("message.mail")
         self.server.set_desktop_file("/usr/share/applications/gmnotify.desktop")
+        self.server.connect("server-display", self.serverClick)
         self.indicators = []
         
         # Create one indicator and instantly delete it to make the server show up in the applet (HACK?)
@@ -70,6 +71,10 @@ class CheckMail():
         self.checkmail()
         gobject.timeout_add_seconds(checkinterval, self.checkmail)
         gtk.main()
+    
+    def serverClick(self, server):
+        '''called when the server is clicked in the indicator-applet to open the gmail account'''
+        subprocess.Popen("xdg-open 'https://mail.google.com/mail/'", shell=True)
     
     def filterNewMail(self):
         '''returns the ids of new mails since last check in a list'''
