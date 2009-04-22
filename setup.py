@@ -8,6 +8,6 @@ setup(  name='gm-notify',
         author='Alexander Hungenberg',
         author_email='alexander.hungenberg@gmail.com',
         py_modules=['gmailatom', 'keyring'],
-        scripts=['gm-notify.py'],
+        scripts=['gm-notify.py', 'set-gmail-password.py'],
         data_files=[('/usr/share/applications', ['data/gm-notify.desktop']),
                     ('/usr/share/locale/de/LC_MESSAGES', ['po/gm-notify-de.mo'])] )

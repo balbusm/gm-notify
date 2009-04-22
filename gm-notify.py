@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import pynotify, indicate
+import pynotify, indicate, urllib2
 import gtk, gobject
 import sys, subprocess
 import gettext
@@ -42,7 +42,7 @@ class CheckMail():
         '''initiates DBUS-Messaging interface, creates the feedreader and registers with indicator-applet.
         In the end it starts the periodic check timer and a gtk main-loop'''
         
-        # Initiate pynotify and Feedreader with Gnome-Keyring Credentials and 
+        # Initiate pynotify and Feedreader with Gnome-Keyring Credentials
         if not pynotify.init("GMail Notifier"):
             sys.exit(-1)
         
@@ -50,7 +50,7 @@ class CheckMail():
         if keys.has_credentials():
             creds = keys.get_credentials()
         else:
-            self.showNotification(_("No crendentials"), _("Please add credentials for mail.google.com (http) to the gnome keyring and allow gm-notify accessing it."))
+            self.showNotification(_("No crendentials"), _("Please add credentials for mail.google.com (http) to the gnome keyring (via set-gmail-password.py script) and allow gm-notify accessing it."))
             sys.exit(-1)
         
         self.atom = gmailatom.GmailAtom(creds[0], creds[1])
@@ -81,6 +81,9 @@ class CheckMail():
         
         try:
             self.atom.refreshInfo()
+        except urllib2.HTTPError:
+            self.showNotification(_("Wrong credentials"), _("please reenter your credentials with the set-gmail-password.py script."))
+            sys.exit(-1)
         except: # No network connection?
             print _("Exception caught while refreshing feed. Check your network connection.")
             return [] # Just indicate that there is nothing new
