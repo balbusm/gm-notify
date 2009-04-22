@@ -2,7 +2,7 @@
 Encoding=UTF-8
 Name=GMail Notifier
 GenericName=EMail Notifier
-Exec=gm-notify
+Exec=gm-notify.py
 Icon=evolution
 StartupNotify=true
 Terminal=false
