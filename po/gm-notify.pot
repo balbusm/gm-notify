@@ -1,0 +1,39 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR ORGANIZATION
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: gm-notify 0.5\n"
+"POT-Creation-Date: 2009-04-22 18:14+CEST\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+
+
+#: gm-notify.py:50
+msgid "No crendentials"
+msgstr ""
+
+#: gm-notify.py:50
+msgid "Please add credentials for mail.google.com (http) to the gnome keyring and allow gm-notify accessing it."
+msgstr ""
+
+#: gm-notify.py:77
+msgid "Exception caught while refreshing feed. Check your network connection:"
+msgstr ""
+
+#: gm-notify.py:112
+msgid "(no subject)"
+msgstr ""
+
+#: gm-notify.py:121
+msgid "Incoming Message"
+msgstr ""
+
+#: gm-notify.py:123
+msgid " new Messages"
+msgstr ""
+
