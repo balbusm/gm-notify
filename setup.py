@@ -10,4 +10,4 @@ setup(  name='gm-notify',
         py_modules=['gmailatom', 'keyring'],
         scripts=['gm-notify.py', 'set-gmail-password.py'],
         data_files=[('/usr/share/applications', ['data/gm-notify.desktop']),
-                    ('/usr/share/locale/de/LC_MESSAGES', ['po/gm-notify-de.mo'])] )
+                    ('/usr/share/locale/de/LC_MESSAGES', ['po/de/gm-notify.mo'])] )

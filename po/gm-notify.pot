@@ -1,26 +1,27 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR ORGANIZATION
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
+#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2009-04-22 21:43+CEST\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2009-04-22 19:54+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=CHARSET\n"
-"Content-Transfer-Encoding: ENCODING\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2009-04-22 20:20+0000\n"
+"X-Generator: Launchpad (build Unknown)\n"
 "Generated-By: pygettext.py 1.5\n"
-
 
 #: gm-notify.py:53
 msgid "No crendentials"
 msgstr ""
 
 #: gm-notify.py:53
-msgid "Please add credentials for mail.google.com (http) to the gnome keyring (via set-gmail-password.py script) and allow gm-notify accessing it."
+msgid ""
+"Please add credentials for mail.google.com (http) to the gnome keyring (via "
+"set-gmail-password.py script) and allow gm-notify accessing it."
 msgstr ""
 
 #: gm-notify.py:85
@@ -28,11 +29,13 @@ msgid "Wrong credentials"
 msgstr ""
 
 #: gm-notify.py:85
-msgid "please reenter your credentials with the set-gmail-password.py script."
+msgid ""
+"please reenter your credentials with the set-gmail-password.py script."
 msgstr ""
 
 #: gm-notify.py:88
-msgid "Exception caught while refreshing feed. Check your network connection."
+msgid ""
+"Exception caught while refreshing feed. Check your network connection."
 msgstr ""
 
 #: gm-notify.py:123
@@ -46,4 +49,3 @@ msgstr ""
 #: gm-notify.py:134
 msgid " new Messages"
 msgstr ""
-
