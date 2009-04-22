@@ -59,7 +59,7 @@ class CheckMail():
         # Register with Indicator-Applet
         self.server = indicate.indicate_server_ref_default()
         self.server.set_type("message.mail")
-        self.server.set_desktop_file("/usr/share/applications/gmnotify.desktop")
+        self.server.set_desktop_file("/usr/share/applications/gm-notify.desktop")
         self.server.connect("server-display", self.serverClick)
         self.indicators = []
         
