@@ -35,7 +35,7 @@ checkinterval = 90
 ### End of config
 ########
 
-_ = gettext.translation('gm-notify', fallback=True).ugettext
+_ = gettext.translation('gm-notify-de', fallback=True).ugettext
 
 class CheckMail():
     def __init__(self):
