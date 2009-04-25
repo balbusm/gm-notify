@@ -1,51 +1,93 @@
-#, fuzzy
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR ORGANIZATION
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2009-04-22 19:54+0000\n"
+"POT-Creation-Date: 2009-04-25 23:14+CEST\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2009-04-22 20:20+0000\n"
-"X-Generator: Launchpad (build Unknown)\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: ENCODING\n"
 "Generated-By: pygettext.py 1.5\n"
 
-#: gm-notify.py:53
-msgid "No crendentials"
+
+#: gm-notify-config.py:76 gm-notify.py:40
+msgid "GMail Notifier"
 msgstr ""
 
-#: gm-notify.py:53
-msgid ""
-"Please add credentials for mail.google.com (http) to the gnome keyring (via "
-"set-gmail-password.py script) and allow gm-notify accessing it."
+#: gm-notify-config.py:86
+msgid "Credentials"
 msgstr ""
 
-#: gm-notify.py:85
+#: gm-notify-config.py:89
+msgid "Username:"
+msgstr ""
+
+#: gm-notify-config.py:90
+msgid "Password:"
+msgstr ""
+
+#: gm-notify-config.py:91
+msgid "Checkinterval:"
+msgstr ""
+
+#: gm-notify-config.py:95
+msgid "Play Sound on new Mail"
+msgstr ""
+
+#: gm-notify-config.py:96
+msgid "Choose a soundfile"
+msgstr ""
+
+#: gm-notify-config.py:97 gm-notify-config.py:231
+msgid "Please enter credentials"
+msgstr ""
+
+#: gm-notify-config.py:203
+msgid "checking..."
+msgstr ""
+
+#: gm-notify-config.py:217
+msgid "OK"
+msgstr ""
+
+#: gm-notify-config.py:221 gm-notify.py:109
 msgid "Wrong credentials"
 msgstr ""
 
-#: gm-notify.py:85
-msgid ""
-"please reenter your credentials with the set-gmail-password.py script."
+#: gm-notify-config.py:224
+msgid "Error! Try again"
 msgstr ""
 
-#: gm-notify.py:88
-msgid ""
-"Exception caught while refreshing feed. Check your network connection."
+#: gm-notify.py:51
+msgid "No Credentials"
 msgstr ""
 
-#: gm-notify.py:123
+#: gm-notify.py:51
+msgid "You didn't complete the configuration. To try again please restart the GMail Notifier"
+msgstr ""
+
+#: gm-notify.py:109
+msgid "please reenter your credentials with the set-gmail-password.py script."
+msgstr ""
+
+#: gm-notify.py:112
+msgid "Exception caught while refreshing feed. Check your network connection."
+msgstr ""
+
+#: gm-notify.py:147
 msgid "(no subject)"
 msgstr ""
 
-#: gm-notify.py:132
+#: gm-notify.py:160
 msgid "Incoming Message"
 msgstr ""
 
-#: gm-notify.py:134
+#: gm-notify.py:162
 msgid " new Messages"
 msgstr ""
+
