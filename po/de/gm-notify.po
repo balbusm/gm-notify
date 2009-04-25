@@ -7,55 +7,97 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gm-notify\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
-"POT-Creation-Date: 2009-04-22 19:54+0000\n"
-"PO-Revision-Date: 2009-04-22 19:57+0000\n"
+"POT-Creation-Date: 2009-04-25 21:45+0000\n"
+"PO-Revision-Date: 2009-04-25 21:48+0000\n"
 "Last-Translator: Alexander Hungenberg <alexander.hungenberg@gmail.com>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2009-04-22 20:20+0000\n"
+"X-Launchpad-Export-Date: 2009-04-25 21:52+0000\n"
 "X-Generator: Launchpad (build Unknown)\n"
 
-#: gm-notify.py:53
-msgid "No crendentials"
-msgstr "Keine Zugangsdaten"
+#: gm-notify-config.py:76 gm-notify.py:40
+msgid "GMail Notifier"
+msgstr "GMail Notifier"
 
-#: gm-notify.py:53
-msgid ""
-"Please add credentials for mail.google.com (http) to the gnome keyring (via "
-"set-gmail-password.py script) and allow gm-notify accessing it."
-msgstr ""
-"Bitte fügen Sie Zugangsdaten für mail.google.com (http) dem Gnome "
-"Schlüsselbund (mit dem set-gmail-password.py script) hinzu und erlauben Sie "
-"gm-notify den Zugriff"
+#: gm-notify-config.py:86
+msgid "Credentials"
+msgstr "Zugangsdaten"
 
-#: gm-notify.py:85
+#: gm-notify-config.py:89
+msgid "Username:"
+msgstr "Benutzername:"
+
+#: gm-notify-config.py:90
+msgid "Password:"
+msgstr "Passwort:"
+
+#: gm-notify-config.py:91
+msgid "Checkinterval:"
+msgstr "Checkintervall"
+
+#: gm-notify-config.py:95
+msgid "Play Sound on new Mail"
+msgstr "Bei neuer E-Mail einen Ton abspielen"
+
+#: gm-notify-config.py:96
+msgid "Choose a soundfile"
+msgstr "Wählen Sie eine Sounddatei"
+
+#: gm-notify-config.py:97 gm-notify-config.py:231
+msgid "Please enter credentials"
+msgstr "Bitte geben Sie Ihre Zugangsdaten ein."
+
+#: gm-notify-config.py:203
+msgid "checking..."
+msgstr "überprüfen..."
+
+#: gm-notify-config.py:217
+msgid "OK"
+msgstr "OK"
+
+#: gm-notify-config.py:221 gm-notify.py:109
 msgid "Wrong credentials"
 msgstr "Falsche Zugangsdaten"
 
-#: gm-notify.py:85
-msgid ""
-"please reenter your credentials with the set-gmail-password.py script."
-msgstr ""
-"bitte geben Sie Ihre Zugangsdaten erneut mit dem set-gmail-password.py "
-"script ein."
+#: gm-notify-config.py:224
+msgid "Error! Try again"
+msgstr "Fehler! Versuchen Sie es noch einmal"
 
-#: gm-notify.py:88
+#: gm-notify.py:51
+msgid "No Credentials"
+msgstr "Keine Zugangsdaten"
+
+#: gm-notify.py:51
+msgid ""
+"You didn't complete the configuration. To try again, please restart the "
+"GMail Notifier"
+msgstr ""
+"Sie haben die Konfiguration nicht vollständig abgeschlossen. Bitte starten "
+"Sie den GMail Notifier erneut, um es noch einmal zu versuchen."
+
+#: gm-notify.py:109
+msgid "Please use the configuration utility to enter correct credentials."
+msgstr ""
+"Bitte benutzen Sie das Konfigurationswerkzeug um korrekte Zugangsdaten "
+"einzugeben."
+
+#: gm-notify.py:112
 msgid ""
 "Exception caught while refreshing feed. Check your network connection."
 msgstr ""
 "Fehler während der Aktualisierung des Nachrichten-Feeds. Bitte überprüfen "
 "Sie Ihre Netzwerkverbindung."
 
-#: gm-notify.py:123
+#: gm-notify.py:147
 msgid "(no subject)"
 msgstr "(kein Betreff)"
 
-#: gm-notify.py:132
+#: gm-notify.py:160
 msgid "Incoming Message"
 msgstr "Eingehende E-Mail"
 
-#: gm-notify.py:134
+#: gm-notify.py:162
 msgid " new Messages"
 msgstr " neue E-Mails"
