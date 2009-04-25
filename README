@@ -1,16 +1,26 @@
-gm-notify 0.5 README
+gm-notify 0.7 README
 ------------------------------------
 
 QUICK INSTALLATION:
 # Execute the setup.py script as root
 sudo ./setup.py install
-# run the set-gmail-password.py script to add your credentials to the gnome-keyring
-set-gmail-password.py test.user testpassword
-# If you accidently created a wrong username delete it with a gnome-keyring
-# management software of your choice (e.g. seahorse)
 
-CHANGE CHECK INTERVAL:
-For this just edit the variable checkinterval in /usr/local/bin/gm-notify.py
+To run the notifier just choose it's Application Entry vom Applications-Network-Gmail Notifier. The Configuration-Dialog is placed unter System-Settings-GMail Notifier Configuration.
+
+DEPENDENCES:
+- python-indicator
+- python-notify
+- python-gst0.10
+- python-gtk2
+
+------------------------------------
+
+RELEASE NOTES:
+v0.7:
+- included (old) Catalan translation
+- German and English is completely translated (I hope my English weren't to bad ;-) )
+- added a graphical configuration interface
+- added support for sound playback on new mails
 
 ------------------------------------
 
