@@ -48,7 +48,7 @@ class CheckMail():
             if keys.has_credentials():
                 creds = keys.get_credentials()
             else:
-                self.showNotification(_("No Credentials"), _("You didn't complete the configuration. To try again please restart the GMail Notifier"))
+                self.showNotification(_("No Credentials"), _("You didn't complete the configuration. To try again, please restart the GMail Notifier"))
                 sys.exit(-1)
         
         self.atom = gmailatom.GmailAtom(creds[0], creds[1])
@@ -106,7 +106,7 @@ class CheckMail():
         try:
             self.atom.refreshInfo()
         except urllib2.HTTPError:
-            self.showNotification(_("Wrong credentials"), _("please reenter your credentials with the set-gmail-password.py script."))
+            self.showNotification(_("Wrong credentials"), _("Please use the configuration utility to enter correct credentials."))
             sys.exit(-1)
         except: # No network connection?
             print _("Exception caught while refreshing feed. Check your network connection.")
