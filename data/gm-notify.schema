@@ -1,0 +1,25 @@
+<gconfschemafile>
+    <schemalist>
+        <schema>
+            <key>/schemas/apps/gm-notify/checkinterval</key>
+            <applyto>/apps/gm-notify/checkinterval</applyto>
+            <owner>gm-notify</owner>
+            <type>string</type>
+            <default>90</default>
+            <locale name="C">
+                <short>Duration in seconds between two mail checks</short>
+            </locale>
+        </schema>
+        <schema>
+            <key>/schemas/apps/gm-notify/soundfile</key>
+            <applyto>/apps/gm-notify/soundfile</applyto>
+            <owner>gm-notify</owner>
+            <type>string</type>
+            <default></default>
+            <locale name="C">
+                <short>Filename of the soundfile</short>
+                <long>Filename of the soundfile that should be played when a new mail arrives</long>
+            </locale>
+        </schema>
+    </schemalist>
+</gconfschemafile>

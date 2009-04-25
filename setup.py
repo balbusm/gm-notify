@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from distutils.core import setup
+import subprocess
 
 setup(  name='gm-notify',
         version='0.7',
@@ -13,3 +14,6 @@ setup(  name='gm-notify',
                     ('/usr/share/applications', ['data/gm-notify-config.desktop']),
                     ('/usr/share/gm-notify', ['data/checking.gif']),
                     ('/usr/share/locale/de/LC_MESSAGES', ['po/de/gm-notify.mo'])] )
+
+print "Installing gconf schema file"
+subprocess.Popen("gconftool --install-schema-file=data/gm-notify.schema", shell=True)
