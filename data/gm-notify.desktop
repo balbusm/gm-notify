@@ -1,10 +1,9 @@
 [Desktop Entry]
 Encoding=UTF-8
 Name=GMail Notifier
-GenericName=EMail Notifier
-Exec=gm-notify.py
 Icon=evolution
-StartupNotify=true
-Terminal=false
 Type=Application
 Categories=Network;
+Exec=gm-notify.py
+StartupNotify=False
+Terminal=false
