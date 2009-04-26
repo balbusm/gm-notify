@@ -7,69 +7,94 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gm-notify\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
-"POT-Creation-Date: 2009-04-25 21:45+0000\n"
-"PO-Revision-Date: 2009-04-25 21:48+0000\n"
+"POT-Creation-Date: 2009-04-26 14:36+0000\n"
+"PO-Revision-Date: 2009-04-26 14:32+0000\n"
 "Last-Translator: Alexander Hungenberg <alexander.hungenberg@gmail.com>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2009-04-25 21:52+0000\n"
+"X-Launchpad-Export-Date: 2009-04-26 14:56+0000\n"
 "X-Generator: Launchpad (build Unknown)\n"
 
-#: gm-notify-config.py:76 gm-notify.py:40
+#: gm-notify-config.py:66 gm-notify-config.py:81 gm-notify.py:43
 msgid "GMail Notifier"
 msgstr "GMail Notifier"
 
-#: gm-notify-config.py:86
-msgid "Credentials"
-msgstr "Zugangsdaten"
+#: gm-notify-config.py:91
+msgid "Account"
+msgstr "Benutzerkonto"
 
-#: gm-notify-config.py:89
+#: gm-notify-config.py:94
 msgid "Username:"
 msgstr "Benutzername:"
 
-#: gm-notify-config.py:90
+#: gm-notify-config.py:95
 msgid "Password:"
 msgstr "Passwort:"
 
-#: gm-notify-config.py:91
-msgid "Checkinterval:"
-msgstr "Checkintervall"
-
-#: gm-notify-config.py:95
-msgid "Play Sound on new Mail"
-msgstr "Bei neuer E-Mail einen Ton abspielen"
-
 #: gm-notify-config.py:96
-msgid "Choose a soundfile"
-msgstr "Wählen Sie eine Sounddatei"
+msgid "Mail checking interval (in seconds):"
+msgstr "Zeit zwischen zwei Checks (in Sekunden)"
 
-#: gm-notify-config.py:97 gm-notify-config.py:231
+#: gm-notify-config.py:100
+msgid "Play sound when mail arrives"
+msgstr "Bei neuer E-Mail Sound abspielen"
+
+#: gm-notify-config.py:101
+msgid "Configure sound"
+msgstr "Soundeinstellungen"
+
+#: gm-notify-config.py:102 gm-notify-config.py:250
 msgid "Please enter credentials"
 msgstr "Bitte geben Sie Ihre Zugangsdaten ein."
 
-#: gm-notify-config.py:203
+#: gm-notify-config.py:180
+msgid "Intensive Checks"
+msgstr "Intensive Checks"
+
+#: gm-notify-config.py:180
+msgid ""
+"You're new mails are being fetched more often than every 3 minutes. This is "
+"possible but not recommended, because it produces high load on the GMail "
+"servers."
+msgstr ""
+"Ihre neuen E-Mails werden öfter als alle 3 Minuten abgeholt. Dies ist zwar "
+"möglich, aber nicht empfohlen, da es die GMail Server stark belastet."
+
+#: gm-notify-config.py:191 gm-notify.py:78
+msgid "No Sound selected"
+msgstr "Kein Ton ausgewählt"
+
+#: gm-notify-config.py:191 gm-notify.py:78
+msgid ""
+"Please select a new-mail sound in the audio settings or uncheck the "
+"corresponding option."
+msgstr ""
+"Bitte wählen Sie einen Ton für neue E-Mails in den Audio Einstellungen aus "
+"oder deaktivieren Sie die entsprechende Option."
+
+#: gm-notify-config.py:222
 msgid "checking..."
 msgstr "überprüfen..."
 
-#: gm-notify-config.py:217
+#: gm-notify-config.py:236
 msgid "OK"
 msgstr "OK"
 
-#: gm-notify-config.py:221 gm-notify.py:109
+#: gm-notify-config.py:240
 msgid "Wrong credentials"
 msgstr "Falsche Zugangsdaten"
 
-#: gm-notify-config.py:224
+#: gm-notify-config.py:243
 msgid "Error! Try again"
 msgstr "Fehler! Versuchen Sie es noch einmal"
 
-#: gm-notify.py:51
+#: gm-notify.py:54
 msgid "No Credentials"
 msgstr "Keine Zugangsdaten"
 
-#: gm-notify.py:51
+#: gm-notify.py:54
 msgid ""
 "You didn't complete the configuration. To try again, please restart the "
 "GMail Notifier"
@@ -77,27 +102,31 @@ msgstr ""
 "Sie haben die Konfiguration nicht vollständig abgeschlossen. Bitte starten "
 "Sie den GMail Notifier erneut, um es noch einmal zu versuchen."
 
-#: gm-notify.py:109
+#: gm-notify.py:117
 msgid "Please use the configuration utility to enter correct credentials."
 msgstr ""
 "Bitte benutzen Sie das Konfigurationswerkzeug um korrekte Zugangsdaten "
 "einzugeben."
 
-#: gm-notify.py:112
+#: gm-notify.py:117
+msgid "Wrong Credentials"
+msgstr "Falsche Zugangsdaten"
+
+#: gm-notify.py:120
 msgid ""
 "Exception caught while refreshing feed. Check your network connection."
 msgstr ""
 "Fehler während der Aktualisierung des Nachrichten-Feeds. Bitte überprüfen "
 "Sie Ihre Netzwerkverbindung."
 
-#: gm-notify.py:147
+#: gm-notify.py:159
 msgid "(no subject)"
 msgstr "(kein Betreff)"
 
-#: gm-notify.py:160
+#: gm-notify.py:172
 msgid "Incoming Message"
 msgstr "Eingehende E-Mail"
 
-#: gm-notify.py:162
+#: gm-notify.py:174
 msgid " new Messages"
 msgstr " neue E-Mails"
