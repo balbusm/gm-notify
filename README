@@ -5,10 +5,10 @@ QUICK INSTALLATION:
 # Execute the setup.py script as root
 sudo ./setup.py install
 
-To run the notifier just choose it's Application Entry vom Applications-Network-Gmail Notifier. The Configuration-Dialog is placed unter System-Settings-GMail Notifier Configuration.
+To run the notifier just choose it's Application Entry from Applications-Network-Gmail Notifier. The Configuration-Dialog is placed unter System-Settings-GMail Notifier Configuration.
 
 DEPENDENCES:
-- python-indicator
+- python-indicate
 - python-notify
 - python-gst0.10
 - python-gtk2
