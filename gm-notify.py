@@ -75,7 +75,7 @@ class CheckMail():
                 bus.add_signal_watch()
                 bus.connect("message", self.gst_message)
             else:
-                self.showNotification(_("No sound selected"), _("Please select a new-mail sound in the audio settings or uncheck the corresponding option."))
+                self.showNotification(_("No Sound selected"), _("Please select a new-mail sound in the audio settings or uncheck the corresponding option."))
                 sys.exit(-1)
         else:
             self.player = None
