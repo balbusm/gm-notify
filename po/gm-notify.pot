@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2009-04-26 15:55+CEST\n"
+"POT-Creation-Date: 2009-04-26 16:25+CEST\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -55,7 +55,7 @@ msgstr ""
 msgid "You're new mails are being fetched more often than every 3 minutes. This is possible but not recommended, because it produces high load on the GMail servers."
 msgstr ""
 
-#: gm-notify-config.py:191
+#: gm-notify-config.py:191 gm-notify.py:78
 msgid "No Sound selected"
 msgstr ""
 
@@ -85,10 +85,6 @@ msgstr ""
 
 #: gm-notify.py:54
 msgid "You didn't complete the configuration. To try again, please restart the GMail Notifier"
-msgstr ""
-
-#: gm-notify.py:78
-msgid "No sound selected"
 msgstr ""
 
 #: gm-notify.py:117
