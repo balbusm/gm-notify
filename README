@@ -1,4 +1,4 @@
-gm-notify 0.7 README
+gm-notify 0.8 README
 ------------------------------------
 
 QUICK INSTALLATION:
@@ -7,16 +7,26 @@ sudo ./setup.py install
 
 To run the notifier just choose it's Application Entry from Applications-Network-Gmail Notifier. The Configuration-Dialog is placed unter System-Settings-GMail Notifier Configuration.
 
-DEPENDENCES:
+DEPENDENCIES:
 - python-indicate
 - python-notify
 - python-gst0.10
 - python-gtk2
 - python-gconf
 
+install via
+sudo apt-get install python-indicate python-notify python-gst0.10 python-gtk2 python-gconf
+
 ------------------------------------
 
 RELEASE NOTES:
+
+v0.8:
+- included Danish translation
+- integrated with GNOME Sound Framework.
+- Fixed Bug #367242
+- warn when using small check intervals
+
 v0.7:
 - included (old) Catalan translation
 - German and English is completely translated (I hope my English weren't to bad ;-) )
