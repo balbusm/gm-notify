@@ -11,14 +11,14 @@
             </locale>
         </schema>
         <schema>
-            <key>/schemas/apps/gm-notify/soundfile</key>
-            <applyto>/apps/gm-notify/soundfile</applyto>
+            <key>/schemas/apps/gm-notify/play_sound</key>
+            <applyto>/apps/gm-notify/play_sound</applyto>
             <owner>gm-notify</owner>
-            <type>string</type>
-            <default></default>
+            <type>bool</type>
+            <default>False</default>
             <locale name="C">
-                <short>Filename of the soundfile</short>
-                <long>Filename of the soundfile that should be played when a new mail arrives</long>
+                <short>Shall we play a sound on new mail?</short>
+                <long>If active the new mail notification sound out of the XDG specification will be taken.</long>
             </locale>
         </schema>
     </schemalist>
