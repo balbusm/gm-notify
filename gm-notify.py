@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# gm-notify.py v0.7
+# gm-notify.py v0.8
 # a simple and lightweight GMail-Notifier for ubuntu starting at 9.04 and preferable notify-osd
 #
 # Copyright (c) 2009, Alexander Hungenberg <alexander.hungenberg@gmail.com>
@@ -19,7 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import pynotify, indicate, urllib2
+import pynotify
+import indicate
+import urllib2
 import gtk, gobject
 import pygst
 pygst.require("0.10")
@@ -28,6 +30,7 @@ import gconf
 import sys, subprocess
 import gettext
 import gmailatom, keyring
+import gmxdgsoundlib as soundlib
 
 _ = gettext.translation('gm-notify', fallback=True).ugettext
 
@@ -62,13 +65,18 @@ class CheckMail():
             checkinterval = 90
         
         # init sound
-        if self.client.get_string("/apps/gm-notify/soundfile"):
-            self.player = gst.element_factory_make("playbin", "player")
-            self.player.set_property("video-sink", gst.element_factory_make("fakesink", "fakesink"))
-            self.player.set_property("uri", "file://" + self.client.get_string("/apps/gm-notify/soundfile"))
-            bus = self.player.get_bus()
-            bus.add_signal_watch()
-            bus.connect("message", self.gst_message)
+        soundfile = soundlib.findsoundfile(self.client.get_string("/desktop/gnome/sound/theme_name"))
+        if self.client.get_bool("/apps/gm-notify/play_sound"):
+            if soundfile:
+                self.player = gst.element_factory_make("playbin", "player")
+                self.player.set_property("video-sink", gst.element_factory_make("fakesink", "fakesink"))
+                self.player.set_property("uri", "file://" + soundfile)
+                bus = self.player.get_bus()
+                bus.add_signal_watch()
+                bus.connect("message", self.gst_message)
+            else:
+                self.showNotification(_("No sound selected"), _("Please select a new-mail sound in the audio settings or uncheck the corresponding option."))
+                sys.exit(-1)
         else:
             self.player = None
         
@@ -106,7 +114,7 @@ class CheckMail():
         try:
             self.atom.refreshInfo()
         except urllib2.HTTPError:
-            self.showNotification(_("Wrong credentials"), _("Please use the configuration utility to enter correct credentials."))
+            self.showNotification(_("Wrong Credentials"), _("Please use the configuration utility to enter correct credentials."))
             sys.exit(-1)
         except: # No network connection?
             print _("Exception caught while refreshing feed. Check your network connection.")
@@ -116,7 +124,11 @@ class CheckMail():
         # it isn't already stored in the oldmail-list, which would mean that
         # we already notified the user of this mail
         new = []
-        for i in range(0, self.atom.getUnreadMsgCount()):
+        if self.atom.getUnreadMsgCount() <= 20:
+            unreadcount = self.atom.getUnreadMsgCount()
+        else:
+            unreadcount = 20
+        for i in range(0, unreadcount):
             msgid = self.atom.getMsgTitle(i) + ":" + self.atom.getMsgSummary(i)
             if not msgid in self.oldmail:
                 new.append(i)
@@ -126,7 +138,7 @@ class CheckMail():
         # ones that are yet unread
         self.indicators = []
         self.oldmail = []
-        for i in range(0, self.atom.getUnreadMsgCount()):
+        for i in range(0, unreadcount):
             self.addIndicator(self.atom.getMsgTitle(i))
             self.oldmail.append(self.atom.getMsgTitle(i) + ":" + self.atom.getMsgSummary(i))
         

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# gm-notify-config.py v0.7
+# gm-notify-config.py v0.8
 # a simple and lightweight GMail-Notifier for ubuntu starting at 9.04 and preferable notify-osd
 #
 # Copyright (c) 2009, Alexander Hungenberg <alexander.hungenberg@gmail.com>
@@ -19,12 +19,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import gtk, pygtk, gconf
+import pygtk
 pygtk.require("2.0")
+import gtk
+import pynotify
+import gconf
 from threading import Thread
 import urllib2
 import gettext
+import subprocess
 import gmailatom, keyring
+import gmxdgsoundlib as soundlib
 
 _ = gettext.translation('gm-notify', fallback=True).ugettext
 
@@ -58,6 +63,9 @@ class gmnotifyConfig:
         else:
             creds = ("", "")
         
+        if not pynotify.init(_("GMail Notifier")):
+            sys.exit(-1)
+        
         # Init gconf get initial sound and checkinterval values
         self.client = gconf.client_get_default()
         if self.client.get_string("/apps/gm-notify/checkinterval"):
@@ -65,10 +73,7 @@ class gmnotifyConfig:
         else:
             checkinterval = 90.0
         
-        if self.client.get_string("/apps/gm-notify/soundfile"):
-            sound = self.client.get_string("/apps/gm-notify/soundfile")
-        else:
-            sound = None
+        sound = self.client.get_bool("/apps/gm-notify/play_sound")
         
         ### UI Setup Part
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
@@ -83,21 +88,21 @@ class gmnotifyConfig:
         table = gtk.Table(3,2)
         self.window.add(vbox)
         
-        frame = gtk.Frame(_("Credentials"))
+        frame = gtk.Frame(_("Account"))
         frame.add(table)
         
         label_user = gtk.Label(_("Username:"))
         label_passwd = gtk.Label(_("Password:"))
-        label_checkinterval = gtk.Label(_("Checkinterval:"))
+        label_checkinterval = gtk.Label(_("Mail checking interval (in seconds):"))
         hsep = gtk.HSeparator()
         self.button_ok = gtk.Button(stock=gtk.STOCK_APPLY)
         self.button_close = gtk.Button(stock=gtk.STOCK_CLOSE)
-        self.checkbutton_play = gtk.CheckButton(_("Play Sound on new Mail"))
-        self.filechooser_play = gtk.FileChooserButton(_("Choose a soundfile"))
+        self.checkbutton_play = gtk.CheckButton(_("Play sound when mail arrives"))
+        self.button_play = gtk.Button(_("Configure sound"))
         self.label_status = gtk.Label(_("Please enter credentials"))
         self.input_user = gtk.Entry()
         self.input_passwd = gtk.Entry()
-        check_adjustment = gtk.Adjustment(value=checkinterval, lower=20, upper=1000, step_incr=5, page_incr=60)
+        check_adjustment = gtk.Adjustment(value=checkinterval, lower=30, upper=1000, step_incr=5, page_incr=60)
         self.spinbutton_checkinterval = gtk.SpinButton(check_adjustment)
         self.image_credok = gtk.Image()
         
@@ -105,11 +110,12 @@ class gmnotifyConfig:
         table.set_col_spacing(0, 5)
         table.set_row_spacing(0, 2)
         table.set_row_spacing(1, 5)
+        label_checkinterval.set_line_wrap(True)
+        label_checkinterval.set_size_request(150, -1)
         if sound:
             self.checkbutton_play.set_active(True)
-            self.filechooser_play.set_filename(sound)
         else:
-            self.filechooser_play.set_sensitive(False)
+            self.button_play.set_sensitive(False)
         self.input_user.set_text(creds[0])
         self.input_passwd.set_text(creds[1])
         self.input_passwd.set_visibility(False)
@@ -122,7 +128,7 @@ class gmnotifyConfig:
         self.button_ok.show()
         self.button_close.show()
         self.checkbutton_play.show()
-        self.filechooser_play.show()
+        self.button_play.show()
         self.label_status.show()
         self.input_user.show()
         self.input_passwd.show()
@@ -138,7 +144,7 @@ class gmnotifyConfig:
         
         vbox.pack_start(frame, True, True)
         vbox.pack_start(self.checkbutton_play, True, True)
-        vbox.pack_start(self.filechooser_play, True, True)
+        vbox.pack_start(self.button_play, True, True)
         vbox.pack_start(hsep, True, True)
         vbox.pack_start(hbox_checkinterval, True, True)
         vbox.pack_start(hbox_finalbuttons, True, True)
@@ -156,7 +162,8 @@ class gmnotifyConfig:
         # Perform check when user leaves password field
         self.window.connect("delete_event", gtk.main_quit)
         self.input_passwd.connect("focus_out_event", self.check_credentials)
-        self.checkbutton_play.connect("toggled", self.toggle_filechooser)
+        self.checkbutton_play.connect("toggled", self.toggle_buttonplay)
+        self.button_play.connect("clicked", self.open_gnomesoundproperties)
         self.button_ok.connect("clicked", self.save)
         self.button_close.connect("clicked", gtk.main_quit)
         
@@ -169,28 +176,40 @@ class gmnotifyConfig:
         # Checkinterval
         self.client.add_dir("/apps/gm-notify", gconf.CLIENT_PRELOAD_NONE)
         self.client.set_string("/apps/gm-notify/checkinterval", str(self.spinbutton_checkinterval.get_value()))
-        
-        # Soundfile
-        if self.checkbutton_play.get_active() and self.filechooser_play.get_filename():
-            self.client.set_string("/apps/gm-notify/soundfile", self.filechooser_play.get_filename())
-        else:
-            self.client.set_string("/apps/gm-notify/soundfile", "")
+        if self.spinbutton_checkinterval.get_value() < 180:
+            pynotify.Notification(_("Intensive Checks"), _("You're new mails are being fetched more often than every 3 minutes. This is possible but not recommended, because it produces high load on the GMail servers."), "notification-message-email").show()
         
         # Credentials
         self.keys.set_credentials((self.input_user.get_text(), self.input_passwd.get_text()))
         
-        gtk.main_quit()
+        # Soundfile
+        if self.checkbutton_play.get_active():
+            if soundlib.findsoundfile(self.client.get_string("/desktop/gnome/sound/theme_name")):
+                self.client.set_bool("/apps/gm-notify/play_sound", True)
+                gtk.main_quit()
+            else:
+                pynotify.Notification(_("No Sound selected"), _("Please select a new-mail sound in the audio settings or uncheck the corresponding option."), "notification-message-email").show()
+        else:
+            self.client.set_bool("/apps/gm-notify/play_sound", False)
+            gtk.main_quit()
     
-    def toggle_filechooser(self, widget, data=None):
+    def open_gnomesoundproperties(self, widget, data=None):
         '''toggles active state of the filechooser on base of the checkbutton'''
         
+        self.window.hide()
+        while gtk.events_pending():
+            gtk.main_iteration()
+        subprocess.call("gnome-sound-properties", shell=True)
+        self.window.show()
+    
+    def toggle_buttonplay(self, widget, data=None):
         if self.checkbutton_play.get_active():
-            self.filechooser_play.set_sensitive(True)
+            self.button_play.set_sensitive(True)
         else:
-            self.filechooser_play.set_sensitive(False)
+            self.button_play.set_sensitive(False)
     
     def check_credentials(self, widget, event, data=None):
-        '''check the given credentials if they are valid'''
+        '''check if the given credentials are valid'''
         
         user = self.input_user.get_text()
         passwd = self.input_passwd.get_text()
