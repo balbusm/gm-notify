@@ -49,9 +49,12 @@ class Window:
         
         # Inboxes
         inboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
-        self.wTree.get_widget("checkbutton_inbox").set_active("INBOX" in inboxes)
-        self.wTree.get_widget("checkbutton_allmail").set_active("[Gmail]/All Mail" in inboxes)
-        self.wTree.get_widget("checkbutton_starred").set_active("[Gmail]/Starred" in inboxes)
+        if inboxes:
+            self.wTree.get_widget("checkbutton_inbox").set_active("INBOX" in inboxes)
+            self.wTree.get_widget("checkbutton_allmail").set_active("[Gmail]/All Mail" in inboxes)
+            self.wTree.get_widget("checkbutton_starred").set_active("[Gmail]/Starred" in inboxes)
+        else:
+            self.wTree.get_widget("checkbutton_inbox").set_active(True)
         
         # Checkinterval
         if self.client.get_string("/apps/gm-notify/checkinterval"):
