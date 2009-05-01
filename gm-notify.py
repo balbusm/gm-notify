@@ -29,6 +29,7 @@ import gst
 import gconf
 import sys, subprocess
 import gettext
+from imaplib import *
 import gmailatom, keyring
 import gmxdgsoundlib as soundlib
 
@@ -45,16 +46,16 @@ class CheckMail():
         
         keys = keyring.Keyring("GMail", "mail.google.com", "http")
         if keys.has_credentials():
-            creds = keys.get_credentials()
+            self.creds = keys.get_credentials()
         else:
             subprocess.Popen("/usr/local/bin/gm-notify-config.py", shell=True)
             if keys.has_credentials():
-                creds = keys.get_credentials()
+                self.creds = keys.get_credentials()
             else:
                 self.showNotification(_("No Credentials"), _("You didn't complete the configuration. To try again, please restart the GMail Notifier"))
                 sys.exit(-1)
         
-        self.atom = gmailatom.GmailAtom(creds[0], creds[1])
+        self.mailboxes = ["Inbox"]
         self.oldmail = []
         
         # Init gconf to read config values
@@ -108,39 +109,28 @@ class CheckMail():
         '''called when the server is clicked in the indicator-applet to open the gmail account'''
         subprocess.Popen("xdg-open 'https://mail.google.com/mail/'", shell=True)
     
-    def filterNewMail(self):
+    def filterNewMail(self, imapserver, inbox):
         '''returns the ids of new mails since last check in a list'''
         
-        try:
-            self.atom.refreshInfo()
-        except urllib2.HTTPError:
-            self.showNotification(_("Wrong Credentials"), _("Please use the configuration utility to enter correct credentials."))
-            sys.exit(-1)
-        except: # No network connection?
-            print _("Exception caught while refreshing feed. Check your network connection.")
-            return [] # Just indicate that there is nothing new
+        imapserver.select(inbox)
+        msgids = imapserver.search(None, "(UNSEEN)")[1][0].split(" ")
+        if not len(msgids[0]) > 0:
+            msgids = []
         
-        # generate an almost unique message id for each unread mail and check if
-        # it isn't already stored in the oldmail-list, which would mean that
-        # we already notified the user of this mail
+        # store msgids of messages we already notified about in self.oldmail
         new = []
-        if self.atom.getUnreadMsgCount() <= 20:
-            unreadcount = self.atom.getUnreadMsgCount()
-        else:
-            unreadcount = 20
-        for i in range(0, unreadcount):
-            msgid = self.atom.getMsgTitle(i) + ":" + self.atom.getMsgSummary(i)
+        for msgid in msgids:
             if not msgid in self.oldmail:
-                new.append(i)
+                new.append(msgid)
         
         # regenerate the oldmail-list with all mails we processed yet
         # and because we already processed all mails this is equivalent to the 
         # ones that are yet unread
         self.indicators = []
         self.oldmail = []
-        for i in range(0, unreadcount):
-            self.addIndicator(self.atom.getMsgTitle(i))
-            self.oldmail.append(self.atom.getMsgTitle(i) + ":" + self.atom.getMsgSummary(i))
+        for msgid in msgids:
+            self.addIndicator("nothing yet")
+            self.oldmail.append(msgid)
         
         return new
     
@@ -148,11 +138,15 @@ class CheckMail():
         '''calls getnewmail() to retrieve new mails and presents them via
         libnotify (notify-osd) to the user. Returns True for gobject.add_timeout()'''
         
-        # agregate the titles of the messages... cut the string if longer than 20 chars
+        # Connect to IMAP
+        imapserver = IMAP4_SSL("imap.gmail.com")
+        imapserver.login(*self.creds)
+        
+        # aggregate the titles of the messages... cut the string if longer than 20 chars
         titles = ""
-        newmail = self.filterNewMail()
-        for i in newmail:
-            title = self.atom.getMsgTitle(i)
+        newmail = self.filterNewMail(imapserver, "INBOX")
+        for msgid in newmail:
+            title = imapserver.fetch(msgid, "(BODY[HEADER.FIELDS (SUBJECT)])")[1][0][1].strip(" \r\n")[9:]
             if len(title) > 20:
                 title = title[0:20] + "..."
             if len(title) == 0:
@@ -162,6 +156,10 @@ class CheckMail():
                 titles = title
             else:
                 titles += "\n- " + title
+        
+        # Disconnect
+        imapserver.close()
+        imapserver.logout()
         
         # play a sound?
         if len(newmail) > 0 and self.player:
