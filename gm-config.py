@@ -25,7 +25,7 @@ class Window:
         self.client = gconf.client_get_default()
         self.gmapi = gmimap.GMail()
         
-        self.wTree = gtk.glade.XML("gm-config.glade", "gmnotify_config_main")
+        self.wTree = gtk.glade.XML("gm-config.glade", "gmnotify_config_main", "gm-notify")
         self.window = self.wTree.get_widget("gmnotify_config_main")
         self.window.show_all()
         
@@ -93,7 +93,7 @@ class Window:
         self.client.add_dir("/apps/gm-notify", gconf.CLIENT_PRELOAD_NONE)
         self.client.set_string("/apps/gm-notify/checkinterval", str(checkinterval))
         if checkinterval < 180:
-            pynotify.Notification(_("Short Check Interval"), _("Increasing (more than 3 minutes) is recommended"), "notification-message-email").show()
+            pynotify.Notification(_("Short checking interval"), _("Increasing (more than 3 minutes) is recommended"), "notification-message-email").show()
         
         # Credentials
         self.keys.set_credentials(( self.wTree.get_widget("input_user").get_text(), 
@@ -121,7 +121,7 @@ class Window:
                 self.client.set_bool("/apps/gm-notify/play_sound", True)
                 reactor.stop()
             else:
-                pynotify.Notification(_("No Sound selected"), _("Please select a new-mail sound in the audio settings or uncheck the corresponding option."), "notification-message-email").show()
+                pynotify.Notification(_("No sound selected"), _("Please select a new-message sound in the audio settings or unselect the corresponding option."), "notification-message-email").show()
         else:
             self.client.set_bool("/apps/gm-notify/play_sound", False)
             reactor.stop()
