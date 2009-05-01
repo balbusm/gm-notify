@@ -52,7 +52,7 @@ class CheckMail():
             if keys.has_credentials():
                 self.creds = keys.get_credentials()
             else:
-                self.showNotification(_("No Credentials"), _("You didn't complete the configuration. To try again, please restart the GMail Notifier"))
+                self.showNotification(_("Please enter credentials"), _("You didn't complete the configuration. To try again, please restart the GMail Notifier"))
                 sys.exit(-1)
         
         self.mailboxes = ["Inbox"]
@@ -76,7 +76,7 @@ class CheckMail():
                 bus.add_signal_watch()
                 bus.connect("message", self.gst_message)
             else:
-                self.showNotification(_("No Sound selected"), _("Please select a new-mail sound in the audio settings or uncheck the corresponding option."))
+                self.showNotification(_("No sound selected"), _("Please select a new-message sound in the audio settings or unselect the corresponding option."))
                 sys.exit(-1)
         else:
             self.player = None
@@ -167,9 +167,9 @@ class CheckMail():
         
         # create notifications and play sound
         if not "\n" in titles and not titles == "":
-            self.showNotification(_("Incoming Message"), titles)
+            self.showNotification(_("Incoming message"), titles)
         elif "\n" in titles:
-            self.showNotification(str(len(newmail)) + _(" new Messages"), "- " + titles)
+            self.showNotification(str(len(newmail)) + " " + _("new messages"), "- " + titles)
     
         return True
     
