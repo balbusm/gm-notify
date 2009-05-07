@@ -63,9 +63,10 @@ class CheckMail():
                 self.showNotification(_("Please enter credentials"), _("You didn't complete the configuration. To try again, please restart the GMail Notifier"))
                 sys.exit(-1)
 
+	gmail_domains = ['gmail.com','googlemail.com']
         try:
             self.domain = self.creds[0].split('@')[1]
-            if self.domain == 'gmail.com':
+            if self.domain in gmail_domains:
                 self.domain = None
         except:
             self.domain = None
