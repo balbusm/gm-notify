@@ -10,7 +10,7 @@ Homepage: https://launchpad.net/gm-notify
 Package: gm-notify
 Architecture: any
 XB-Python-Version: ${python:Versions}
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, python-indicate,  python-notify, python-gst0.10, python-gtk2, python-gconf
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, python-indicate,  python-notify, python-gst0.10, python-gtk2, python-gconf, python-twisted-mail
 Provides: ${python:Provides}
 Description: GMail Notifier  
  A simple and lightweight highly Ubuntu 9.04 integrated GMail Notifier which 
