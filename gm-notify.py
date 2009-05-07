@@ -57,6 +57,8 @@ class CheckMail():
 
         try:
             self.domain = self.creds[0].split('@')[1]
+            if self.domain == 'gmail.com':
+                self.domain = None
         except:
             self.domain = None
         
