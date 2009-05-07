@@ -145,8 +145,8 @@ class Window:
             gm_path = "/usr/local/bin/gm-notify.py"
         elif os.path.exists("/usr/bin/gm-notify.py"):
             gm_path = "/usr/bin/gm-notify.py"
+        os.system("killall gm-notify.py")
         subprocess.Popen(gm_path)
-
     
     def terminate(self, widget):
         reactor.stop()
