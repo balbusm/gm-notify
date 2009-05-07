@@ -2,15 +2,8 @@ from twisted.internet import reactor, protocol, ssl, defer
 from twisted.mail.imap4 import *
 
 class IMAPClient(IMAP4Client):
-    def __init__(self, username, password, callback, errback):
-        IMAP4Client.__init__(self, ssl.ClientContextFactory())
-        self.username = username
-        self.password = password
-        self.callback = callback
-        self.errback = errback
-        
-    def connectionMade(self):
-        self.login(self.username, self.password).addCallback(self.callback, self).addErrback(self.errback)
+    def login(self):
+        return self.login(self.factory.username, self.factory.password)
     
     def mailboxesReceived(self, result, deferred):
         self.labels = []
@@ -25,33 +18,33 @@ class IMAPClient(IMAP4Client):
         return d
 
 class IMAPFactory(protocol.ClientFactory):
-    def __init__(self, username, password, callback, errback):
+    def __init__(self, username, password):
         self.username = username
         self.password = password
-        self.callback = callback
-        self.errback = errback
     
     def buildProtocol(self, addr):
-        p = IMAPClient(self.username, self.password, self.callback, self.errback)
+        self.protocol = IMAPClient()
         
-        return p
+        return self.protocol
 
 class GMail():
-    def getLabels(self, username, password, callback, errback=None):
-        self.username = username
-        self.password = password
-        self.labelcallback = callback
-        self._connect(self._getLabels1, errback)
+    def __init__(self, username, password):
+        self.factory = IMAPFactory(username, password)
+        reactor.connectSSL("imap.gmail.com", 993, self.factory, ssl.ClientContextFactory())
     
-    def _getLabels1(self, result, protocol):
-        protocol.getMailboxes().addCallback(self.labelcallback)
+    def login(self):
+        return self.factory.protocol.login()
     
-    def _connect(self, callback, errback=None):
-        if not errback:
-            errback = self.__default_errback
-            
-        factory = IMAPFactory(self.username, self.password, callback, errback)
-        reactor.connectSSL("imap.gmail.com", 993, factory, ssl.ClientContextFactory())
+    def getData(self, function, callback, errback=None):
+        '''get some data. To use pass the desired "after-connect" method to this
+        and a callback when this has been finished'''
+        print dir(self.factory)
+    
+    def getIDs(self):
+        self.factory.protocol.search(Query(all=True))
+    
+    def getLabels(self, result, protocol):
+        protocol.getMailboxes().addCallback(self.callback)
     
     def __default_errback(self, reason):
         raise Exception(reason)

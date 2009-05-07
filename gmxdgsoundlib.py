@@ -36,7 +36,7 @@ def findthemedir(name):
         if os.access(directory, os.F_OK):
             return directory
     
-    return False
+    return None
 
 def readthemefile(path):
     '''reads given soundtheme file and extracts parent theme and soundfile directories'''
@@ -46,8 +46,6 @@ def readthemefile(path):
     with open(path, "r") as f:
         for line in f:
             line = line.strip()
-            if len(line) == 0:
-                continue
             
             if line.startswith("Inherits="):
                 inherits = line.split("=")[1]
@@ -86,8 +84,8 @@ def findsoundfile(soundtheme):
         for onefile in os.listdir(onedir):
             if onefile.startswith("message-new-email"):
                 if onefile == "message-new-email.disabled":
-                    return False
+                    return None
                 else:
                     return onedir + onefile
     
-    return False
+    return None

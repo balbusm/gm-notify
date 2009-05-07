@@ -4,6 +4,7 @@
 import sys
 import gettext
 import subprocess
+
 import pynotify
 import pygtk
 pygtk.require("2.0")
@@ -12,6 +13,7 @@ import gconf
 from twisted.internet import gtk2reactor
 gtk2reactor.install()
 from twisted.internet import reactor
+
 import gmimap, keyring
 import gmxdgsoundlib as soundlib
 
@@ -23,7 +25,6 @@ class Window:
     def __init__(self):
         self.keys = keyring.Keyring("GMail", "mail.google.com", "http")
         self.client = gconf.client_get_default()
-        self.gmapi = gmimap.GMail()
         
         self.wTree = gtk.glade.XML("gm-config.glade", "gmnotify_config_main", "gm-notify")
         self.window = self.wTree.get_widget("gmnotify_config_main")
@@ -35,6 +36,7 @@ class Window:
             creds = self.keys.get_credentials()
         else:
             creds = ("", "")
+        self.gmapi = gmimap.GMail(*creds)
         self.wTree.get_widget("input_user").set_text(creds[0])
         self.wTree.get_widget("input_password").set_text(creds[1])
         
@@ -153,6 +155,9 @@ class Window:
         else:
             spinbutton.hide()
     
+    def test(self, *kargs):
+        print kargs
+    
     def check_credentials(self, widget, event, data=None):
         '''check if the given credentials are valid'''
         
@@ -170,7 +175,7 @@ class Window:
             input_user.set_sensitive(False)
             input_password.set_sensitive(False)
             
-            self.gmapi.getLabels(input_user.get_text(), input_password.get_text(), self.credentials_valid, self.credentials_invalid)
+            self.gmapi.getData(self.gmapi.getLabels, self.credentials_valid, self.credentials_invalid)
         return False
     
     def credentials_valid(self, labels):
@@ -195,6 +200,7 @@ class Window:
             checkbutton.set_active(label in inboxes)
             vbox_expanderlabels.pack_start(checkbutton, expand=False)
         vbox_expanderlabels.show_all()
+        self.gmapi.getData(self.gmapi.noop, self.test)
     
     def credentials_invalid(self, reason):
         input_user = self.wTree.get_widget("input_user")
