@@ -1,0 +1,18 @@
+Source: gm-notify
+Section: mail
+Priority: extra
+Maintainer: Ken VanDine <ken.vandine@canonical.com>
+XS-Python-Version: >= 2.6
+Build-Depends: cdbs, debhelper (>= 7), python-central (>= 0.6), python
+Standards-Version: 3.8.0
+Homepage: https://launchpad.net/gm-notify
+
+Package: gm-notify
+Architecture: all
+XB-Python-Version: ${python:Versions}
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, python-indicate,  python-notify, python-gst0.10, python-gtk2, python-gconf, python-twisted-mail
+Provides: ${python:Provides}
+Description: GMail Notifier  
+ A simple and lightweight highly Ubuntu 9.04 integrated GMail Notifier which 
+ takes advantages of the new and nice notify-osd and indicator-applet.  
+ Because of this it will not run with older Ubuntu versions.

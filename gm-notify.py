@@ -28,6 +28,7 @@ pygst.require("0.10")
 import gst
 import gconf
 import sys, subprocess
+import os
 import gettext
 from imaplib import *
 import gmailatom, keyring
@@ -48,12 +49,27 @@ class CheckMail():
         if keys.has_credentials():
             self.creds = keys.get_credentials()
         else:
-            subprocess.Popen("/usr/local/bin/gm-notify-config.py", shell=True)
+            if os.path.exists("./gm-notify-config.py"):
+                gm_config_path = "./gm-notify-config.py"
+            elif os.path.exists("/usr/local/bin/gm-notify-config.py"):
+                gm_config_path = "/usr/local/bin/gm-notify-config.py"
+            elif os.path.exists("/usr/bin/gm-notify-config.py"):
+                gm_config_path = "/usr/bin/gm-notify-config.py"
+
+            subprocess.Popen(gm_config_path, shell=True)
             if keys.has_credentials():
                 self.creds = keys.get_credentials()
             else:
                 self.showNotification(_("Please enter credentials"), _("You didn't complete the configuration. To try again, please restart the GMail Notifier"))
                 sys.exit(-1)
+
+	gmail_domains = ['gmail.com','googlemail.com']
+        try:
+            self.domain = self.creds[0].split('@')[1]
+            if self.domain in gmail_domains:
+                self.domain = None
+        except:
+            self.domain = None
         
         self.mailboxes = ["Inbox"]
         self.oldmail = []
@@ -107,7 +123,12 @@ class CheckMail():
     
     def serverClick(self, server):
         '''called when the server is clicked in the indicator-applet to open the gmail account'''
-        subprocess.Popen("xdg-open 'https://mail.google.com/mail/'", shell=True)
+        if self.domain:
+            url = "https://mail.google.com/a/"+self.domain+"/"
+        else:
+            url = "https://mail.google.com/mail/"
+        subprocess.Popen("xdg-open "+url, shell=True)
+
     
     def filterNewMail(self, imapserver, inbox):
         '''returns the ids of new mails since last check in a list'''

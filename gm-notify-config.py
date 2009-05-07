@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import os
 import gettext
 import subprocess
 
@@ -26,7 +27,14 @@ class Window:
         self.keys = keyring.Keyring("GMail", "mail.google.com", "http")
         self.client = gconf.client_get_default()
         
-        self.wTree = gtk.glade.XML("gm-config.glade", "gmnotify_config_main", "gm-notify")
+        if os.path.exists("gm-config.glade"):
+            glade_file = "gm-config.glade"
+        elif os.path.exists("/usr/local/share/gm-notify/gm-config.glade"):
+            glade_file = "/usr/local/share/gm-notify/gm-config.glade"
+        elif os.path.exists("/usr/share/gm-notify/gm-config.glade"):
+            glade_file = "/usr/share/gm-notify/gm-config.glade"
+
+        self.wTree = gtk.glade.XML(glade_file, "gmnotify_config_main", "gm-notify")
         self.window = self.wTree.get_widget("gmnotify_config_main")
         self.window.show_all()
         
