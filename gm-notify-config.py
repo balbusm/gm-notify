@@ -33,7 +33,7 @@ class Window:
         elif os.path.exists("/usr/share/gm-notify/gm-config.glade"):
             glade_file = "/usr/share/gm-notify/gm-config.glade"
 
-        self.wTree = gtk.glade.XML("gm-config.glade", "gmnotify_config_main", "gm-notify")
+        self.wTree = gtk.glade.XML(glade_file, "gmnotify_config_main", "gm-notify")
         self.window = self.wTree.get_widget("gmnotify_config_main")
         self.window.show_all()
         
