@@ -14,7 +14,7 @@ setup(  name='gm-notify',
                     ('/usr/share/applications', ['data/gm-notify-config.desktop']),
                     ('/usr/share/gm-notify', ['data/checking.gif']),
                     ('/usr/share/gm-notify', ['gm-config.glade']),
-                    ('/usr/share/gconf/schemas', ['data/gm-notify.schema']),
+                    ('/etc/gconf/schemas', ['data/gm-notify.schemas']),
                     ('/usr/share/locale/da/LC_MESSAGES', ['po/da/gm-notify.mo']),
                     ('/usr/share/locale/de/LC_MESSAGES', ['po/de/gm-notify.mo']),
                     ('/usr/share/locale/ca/LC_MESSAGES', ['po/ca/gm-notify.mo'])] )

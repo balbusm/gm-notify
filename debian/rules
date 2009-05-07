@@ -10,3 +10,5 @@ DEB_DH_INSTALL_SOURCEDIR := debian/tmp
 DEB_PYTHON_INSTALL_ARGS_ALL := --no-compile --install-layout=deb
 
 # Add here any variable or target overrides you need.
+binary-post-install/gm-notify::
+	dh_gconf -p$(cdbs_curpkg) $(DEB_DH_GCONF_ARGS)

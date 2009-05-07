@@ -10,7 +10,7 @@ gmimap.py
 data/checking.gif
 data/gm-notify-config.desktop
 data/gm-notify.desktop
-data/gm-notify.schema
+data/gm-notify.schemas
 po/gm-notify.pot
 po/ca/gm-notify.mo
 po/ca/gm-notify.po

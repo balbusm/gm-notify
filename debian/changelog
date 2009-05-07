@@ -1,3 +1,9 @@
+gm-notify (0.8+r31-1~ppa0) jaunty; urgency=low
+
+  * Use the latest revision 
+
+ -- Ken VanDine <ken.vandine@canonical.com>  Thu, 07 May 2009 08:37:55 -0400
+
 gm-notify (0.8+r27-1~ppa0) jaunty; urgency=low
 
   * Initial packaging
