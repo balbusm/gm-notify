@@ -28,6 +28,7 @@ pygst.require("0.10")
 import gst
 import gconf
 import sys, subprocess
+import os
 import gettext
 from imaplib import *
 import gmailatom, keyring
@@ -48,7 +49,14 @@ class CheckMail():
         if keys.has_credentials():
             self.creds = keys.get_credentials()
         else:
-            subprocess.Popen("/usr/local/bin/gm-notify-config.py", shell=True)
+            if os.path.exists("./gm-notify-config.py"):
+                gm_config_path = "./gm-notify-config.py"
+            elif os.path.exists("/usr/local/bin/gm-notify-config.py"):
+                gm_config_path = "/usr/local/bin/gm-notify-config.py"
+            elif os.path.exists("/usr/bin/gm-notify-config.py"):
+                gm_config_path = "/usr/bin/gm-notify-config.py"
+
+            subprocess.Popen(gm_config_path, shell=True)
             if keys.has_credentials():
                 self.creds = keys.get_credentials()
             else:
