@@ -1,0 +1,19 @@
+This package was debianized by Ken VanDine <ken.vandine@canonical.com> on
+Thu, 07 May 2009 01:39:52 -0400.
+
+It was downloaded from https://launchpad.net/gm-notify
+
+Upstream Author:
+
+    Alexander Hungenberg <alexander.hungenberg@gmail.com>
+
+Copyright:
+
+    Copyright (c) 2009, Alexander Hungenberg <alexander.hungenberg@gmail.com>
+
+License:
+
+    GPL-3
+
+The Debian packaging is copyright 2009, Ken VanDine <ken.vandine@canonical.com> and
+is licensed under the GPL, see `/usr/share/common-licenses/GPL'.
