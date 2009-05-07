@@ -8,7 +8,7 @@ Standards-Version: 3.8.0
 Homepage: https://launchpad.net/gm-notify
 
 Package: gm-notify
-Architecture: any
+Architecture: all
 XB-Python-Version: ${python:Versions}
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, python-indicate,  python-notify, python-gst0.10, python-gtk2, python-gconf, python-twisted-mail
 Provides: ${python:Provides}
