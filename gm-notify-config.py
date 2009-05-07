@@ -127,15 +127,6 @@ class Window:
                 inboxes.append(child.get_label())
         self.client.set_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING, inboxes)
 
-	# Start gm-notify itself
-        if os.path.exists("./gm-notify.py"):
-            gm_path = "./gm-notify.py"
-        elif os.path.exists("/usr/local/bin/gm-notify.py"):
-            gm_path = "/usr/local/bin/gm-notify.py"
-        elif os.path.exists("/usr/bin/gm-notify.py"):
-            gm_path = "/usr/bin/gm-notify.py"
-	subprocess.Popen(gm_path)
-        
         # Soundfile
         if self.wTree.get_widget("checkbutton_sound").get_active():
             if soundlib.findsoundfile(self.client.get_string("/desktop/gnome/sound/theme_name")):
@@ -146,6 +137,16 @@ class Window:
         else:
             self.client.set_bool("/apps/gm-notify/play_sound", False)
             reactor.stop()
+
+	# Start gm-notify itself
+        if os.path.exists("./gm-notify.py"):
+            gm_path = "./gm-notify.py"
+        elif os.path.exists("/usr/local/bin/gm-notify.py"):
+            gm_path = "/usr/local/bin/gm-notify.py"
+        elif os.path.exists("/usr/bin/gm-notify.py"):
+            gm_path = "/usr/bin/gm-notify.py"
+        subprocess.Popen(gm_path)
+
     
     def terminate(self, widget):
         reactor.stop()
