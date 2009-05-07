@@ -54,6 +54,11 @@ class CheckMail():
             else:
                 self.showNotification(_("Please enter credentials"), _("You didn't complete the configuration. To try again, please restart the GMail Notifier"))
                 sys.exit(-1)
+
+        try:
+            self.domain = self.creds[0].split('@')[1]
+        except:
+            self.domain = None
         
         self.mailboxes = ["Inbox"]
         self.oldmail = []
@@ -107,7 +112,12 @@ class CheckMail():
     
     def serverClick(self, server):
         '''called when the server is clicked in the indicator-applet to open the gmail account'''
-        subprocess.Popen("xdg-open 'https://mail.google.com/mail/'", shell=True)
+        if self.domain:
+            url = "https://mail.google.com/a/"+self.domain+"/"
+        else:
+            url = "https://mail.google.com/mail/"
+        subprocess.Popen("xdg-open "+url, shell=True)
+
     
     def filterNewMail(self, imapserver, inbox):
         '''returns the ids of new mails since last check in a list'''
