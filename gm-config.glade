@@ -4,6 +4,8 @@
   <!-- interface-naming-policy project-wide -->
   <widget class="GtkWindow" id="gmnotify_config_main">
     <property name="border_width">10</property>
+    <property name="title" translatable="yes">GMail Notifier</property>
+    <property name="icon_name">evolution</property>
     <child>
       <widget class="GtkVBox" id="vbox_main">
         <property name="visible">True</property>
