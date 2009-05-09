@@ -19,6 +19,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+import os
+import sys
+import subprocess
+import gettext
+from imaplib import *
+
 import pynotify
 import indicate
 import urllib2
@@ -27,10 +33,7 @@ import pygst
 pygst.require("0.10")
 import gst
 import gconf
-import sys, subprocess
-import os
-import gettext
-from imaplib import *
+
 import gmailatom, keyring
 import gmxdgsoundlib as soundlib
 
@@ -56,14 +59,14 @@ class CheckMail():
             elif os.path.exists("/usr/bin/gm-notify-config.py"):
                 gm_config_path = "/usr/bin/gm-notify-config.py"
 
-            subprocess.Popen(gm_config_path, shell=True)
             if keys.has_credentials():
                 self.creds = keys.get_credentials()
             else:
-                self.showNotification(_("Please enter credentials"), _("You didn't complete the configuration. To try again, please restart the GMail Notifier"))
+		        #Start gm-notify-config if no credentials are found
+                subprocess.call(gm_config_path)
                 sys.exit(-1)
 
-	gmail_domains = ['gmail.com','googlemail.com']
+        gmail_domains = ['gmail.com','googlemail.com']
         try:
             self.domain = self.creds[0].split('@')[1]
             if self.domain in gmail_domains:
@@ -96,7 +99,6 @@ class CheckMail():
                 sys.exit(-1)
         else:
             self.player = None
-        
         
         # Register with Indicator-Applet
         self.server = indicate.indicate_server_ref_default()
