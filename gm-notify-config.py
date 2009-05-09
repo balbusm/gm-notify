@@ -196,7 +196,7 @@ class Window:
         return False
     
     def check_credentials2(self, protocol):
-        self.gmapi.login().addCallback(self.credentials_valid).addErrback(self.credentials_invalid)
+        self.gmapi.protocol.login().addCallback(self.credentials_valid).addErrback(self.credentials_invalid)
     
     def fillLabels(self, labels):
         expander_labels = self.wTree.get_widget("expander_labels")

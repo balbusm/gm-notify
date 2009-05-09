@@ -27,11 +27,12 @@ import gettext
 import pynotify
 import indicate
 import urllib2
-import gtk, gobject
+import gobject
 import pygst
 pygst.require("0.10")
 import gst
 import gconf
+from twisted.internet import reactor
 
 from gmimap import GMail
 import keyring
@@ -112,8 +113,8 @@ class CheckMail():
         self.gmapi = GMail(*creds)
         self.checkmail()
         
-        gobject.timeout_add_seconds(checkinterval, self.checkmail)
-        gtk.main()
+        #gobject.timeout_add_seconds(checkinterval, self.checkmail)
+        reactor.run()
     
     def gst_message(self, bus, message):
         if message.type == gst.MESSAGE_EOS:
@@ -218,9 +219,18 @@ class CheckMail():
         self.indicators.append(new_indicator)
     
     def _connected(self, protocol):
-        self.gmapi.login().addCallback(self._logged_in)
+        '''We entered connected state, need to authenticate now'''
+        
+        self.gmapi.protocol.login().addCallback(self._logged_in)
     
     def _logged_in(self, result):
+        for mailbox in self.mailboxes:
+            self.gmapi.protocol.select(mailbox).addCallback(self._selected_mailbox)
+    
+    def _selected_mailbox(self, result):
+        self.gmapi.getIDs().addCallback(self._got_msgids)
+    
+    def _got_msgids(self, result):
         print result
 
 cm = CheckMail()
