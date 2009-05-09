@@ -23,7 +23,6 @@ import os
 import sys
 import subprocess
 import gettext
-from imaplib import *
 
 import pynotify
 import indicate
@@ -34,7 +33,8 @@ pygst.require("0.10")
 import gst
 import gconf
 
-import gmailatom, keyring
+from gmimap import GMail
+import keyring
 import gmxdgsoundlib as soundlib
 
 _ = gettext.translation('gm-notify', fallback=True).ugettext
@@ -50,8 +50,9 @@ class CheckMail():
         
         keys = keyring.Keyring("GMail", "mail.google.com", "http")
         if keys.has_credentials():
-            self.creds = keys.get_credentials()
+            creds = keys.get_credentials()
         else:
+            # Start gm-notify-config if no credentials are found
             if os.path.exists("./gm-notify-config.py"):
                 gm_config_path = "./gm-notify-config.py"
             elif os.path.exists("/usr/local/bin/gm-notify-config.py"):
@@ -59,13 +60,10 @@ class CheckMail():
             elif os.path.exists("/usr/bin/gm-notify-config.py"):
                 gm_config_path = "/usr/bin/gm-notify-config.py"
 
-            if keys.has_credentials():
-                self.creds = keys.get_credentials()
-            else:
-		        #Start gm-notify-config if no credentials are found
-                subprocess.call(gm_config_path)
-                sys.exit(-1)
-
+            subprocess.call(gm_config_path)
+            sys.exit(-1)
+        
+        # check if we use Google Apps to start the correct webinterface
         gmail_domains = ['gmail.com','googlemail.com']
         try:
             self.domain = self.creds[0].split('@')[1]
@@ -74,10 +72,7 @@ class CheckMail():
         except:
             self.domain = None
         
-        self.mailboxes = ["Inbox"]
-        self.oldmail = []
-        
-        # Init gconf to read config values
+        # init gconf to read config values
         self.client = gconf.client_get_default()
         if self.client.get_string("/apps/gm-notify/checkinterval"):
             checkinterval = int(float(self.client.get_string("/apps/gm-notify/checkinterval")))
@@ -112,7 +107,11 @@ class CheckMail():
         self.indicators = []
         
         # Check every <checkinterval> seconds
+        self.mailboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
+        self.oldmail = []
+        self.gmapi = GMail(*creds)
         self.checkmail()
+        
         gobject.timeout_add_seconds(checkinterval, self.checkmail)
         gtk.main()
     
@@ -161,10 +160,12 @@ class CheckMail():
         '''calls getnewmail() to retrieve new mails and presents them via
         libnotify (notify-osd) to the user. Returns True for gobject.add_timeout()'''
         
-        # Connect to IMAP
-        imapserver = IMAP4_SSL("imap.gmail.com")
-        imapserver.login(*self.creds)
-        
+        # Connect to IMAP - No check for valid credentials. When they edit them manually
+        # it's their fault ;-)
+        self.gmapi.connect().addCallback(self._connected)
+    
+    def displaymail(self, newmail):
+        # FIXME
         # aggregate the titles of the messages... cut the string if longer than 20 chars
         titles = ""
         newmail = self.filterNewMail(imapserver, "INBOX")
@@ -215,5 +216,11 @@ class CheckMail():
         new_indicator.set_property("sender", msg)
         new_indicator.show()
         self.indicators.append(new_indicator)
+    
+    def _connected(self, protocol):
+        self.gmapi.login().addCallback(self._logged_in)
+    
+    def _logged_in(self, result):
+        print result
 
 cm = CheckMail()
