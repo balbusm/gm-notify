@@ -60,7 +60,7 @@ def findsearchdirectories(soundtheme):
     
     directories = []
     sounddir = findthemedir(soundtheme)
-    while True:
+    while sounddir:
         (inherits, themedirs) = readthemefile(sounddir + "index.theme")
         directories.append(sounddir + themedirs + "/")
         if inherits:
