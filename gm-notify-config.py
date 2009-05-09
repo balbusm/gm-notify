@@ -5,7 +5,6 @@ import sys
 import os
 import gettext
 import subprocess
-
 import pynotify
 import pygtk
 pygtk.require("2.0")
@@ -127,7 +126,7 @@ class Window:
             if child.get_active():
                 inboxes.append(child.get_label())
         self.client.set_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING, inboxes)
-        
+
         # Soundfile
         if self.wTree.get_widget("checkbutton_sound").get_active():
             if soundlib.findsoundfile(self.client.get_string("/desktop/gnome/sound/theme_name")):
@@ -138,6 +137,16 @@ class Window:
         else:
             self.client.set_bool("/apps/gm-notify/play_sound", False)
             reactor.stop()
+
+        # Start gm-notify itself
+        if os.path.exists("./gm-notify.py"):
+            gm_path = "./gm-notify.py"
+        elif os.path.exists("/usr/local/bin/gm-notify.py"):
+            gm_path = "/usr/local/bin/gm-notify.py"
+        elif os.path.exists("/usr/bin/gm-notify.py"):
+            gm_path = "/usr/bin/gm-notify.py"
+        subprocess.call("killall gm-notify.py", shell=True)
+        subprocess.Popen(gm_path)
     
     def terminate(self, widget):
         reactor.stop()
@@ -183,34 +192,41 @@ class Window:
             input_user.set_sensitive(False)
             input_password.set_sensitive(False)
             
-            self.gmapi.getData(self.gmapi.getLabels, self.credentials_valid, self.credentials_invalid)
+            self.gmapi.connect().addCallback(self.check_credentials2)
         return False
     
-    def credentials_valid(self, labels):
-        input_user = self.wTree.get_widget("input_user")
-        input_password = self.wTree.get_widget("input_password")
-        image_credentials = self.wTree.get_widget("image_credentials")
-        label_credentials = self.wTree.get_widget("label_credentials")
-        button_apply = self.wTree.get_widget("button_apply")
+    def check_credentials2(self, protocol):
+        self.gmapi.login().addCallback(self.credentials_valid).addErrback(self.credentials_invalid)
+    
+    def fillLabels(self, labels):
         expander_labels = self.wTree.get_widget("expander_labels")
         vbox_expanderlabels = self.wTree.get_widget("vbox_expanderlabels")
         inboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
         
-        image_credentials.set_from_icon_name("gtk-yes", gtk.ICON_SIZE_MENU)
-        label_credentials.set_text(_("Valid credentials"))
         expander_labels.set_sensitive(True)
-        button_apply.set_sensitive(True)
-        input_user.set_sensitive(True)
-        input_password.set_sensitive(True)
         
         for label in labels:
             checkbutton = gtk.CheckButton(label=label)
             checkbutton.set_active(label in inboxes)
             vbox_expanderlabels.pack_start(checkbutton, expand=False)
         vbox_expanderlabels.show_all()
-        self.gmapi.getData(self.gmapi.noop, self.test)
+    
+    def credentials_valid(self, result):
+        self.gmapi.getLabels().addCallback(self.fillLabels)
+        input_user = self.wTree.get_widget("input_user")
+        input_password = self.wTree.get_widget("input_password")
+        image_credentials = self.wTree.get_widget("image_credentials")
+        label_credentials = self.wTree.get_widget("label_credentials")
+        button_apply = self.wTree.get_widget("button_apply")
+        
+        image_credentials.set_from_icon_name("gtk-yes", gtk.ICON_SIZE_MENU)
+        label_credentials.set_text(_("Valid credentials"))
+        button_apply.set_sensitive(True)
+        input_user.set_sensitive(True)
+        input_password.set_sensitive(True)
     
     def credentials_invalid(self, reason):
+        print reason
         input_user = self.wTree.get_widget("input_user")
         input_password = self.wTree.get_widget("input_password")
         image_credentials = self.wTree.get_widget("image_credentials")
