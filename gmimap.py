@@ -1,6 +1,7 @@
 from twisted.internet import reactor, protocol, ssl, defer
 from twisted.internet.protocol import ClientCreator
 from twisted.mail.imap4 import MessageSet, IMAP4Client
+import sys
 
 class IMAPClient(IMAP4Client):
     def login(self):
@@ -34,8 +35,8 @@ class GMail():
         
         return d
     
-    def getIDs(self):
-        return self.protocol.fetchAll(MessageSet(1))
+    def getSubjects(self, oldcount):
+        return self.protocol.fetchSpecific(str(oldcount) + ":*", headerType="HEADER.FIELDS", headerArgs=["SUBJECT"])
     
     def getLabels(self):
         '''returns a deferred with a list of all Labels in the connected Account'''
@@ -48,4 +49,3 @@ class GMail():
         self.protocol = protocol
         self.protocol.gmail = self
         d.callback(protocol)
-

@@ -32,6 +32,8 @@ import pygst
 pygst.require("0.10")
 import gst
 import gconf
+from twisted.internet import gtk2reactor
+gtk2reactor.install()
 from twisted.internet import reactor
 
 from gmimap import GMail
@@ -45,13 +47,13 @@ class CheckMail():
         '''initiates DBUS-Messaging interface, creates the feedreader and registers with indicator-applet.
         In the end it starts the periodic check timer and a gtk main-loop'''
         
-        # Initiate pynotify and Feedreader with Gnome-Keyring Credentials
+        # Initiate pynotify and Gnome Keyring
         if not pynotify.init(_("GMail Notifier")):
             sys.exit(-1)
         
         keys = keyring.Keyring("GMail", "mail.google.com", "http")
         if keys.has_credentials():
-            creds = keys.get_credentials()
+            self.creds = keys.get_credentials()
         else:
             # Start gm-notify-config if no credentials are found
             if os.path.exists("./gm-notify-config.py"):
@@ -107,13 +109,17 @@ class CheckMail():
         self.addIndicator("dummy")
         self.indicators = []
         
-        # Check every <checkinterval> seconds
+        # Retrieve some options and already received mailcount
         self.mailboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
-        self.oldmail = []
-        self.gmapi = GMail(*creds)
-        self.checkmail()
+        self.oldmail = {}
+        oldlist = self.client.get_list("/apps/gm-notify/oldmail", gconf.VALUE_STRING)
+        for old in oldlist:
+            old = old.split("!%)")
+            self.oldmail[old[0]] = int(old[1])
         
-        #gobject.timeout_add_seconds(checkinterval, self.checkmail)
+        # Check every xx seconds
+        self.checkmail()
+        gobject.timeout_add_seconds(checkinterval, self.checkmail)
         reactor.run()
     
     def gst_message(self, bus, message):
@@ -129,33 +135,8 @@ class CheckMail():
             url = "https://mail.google.com/a/"+self.domain+"/"
         else:
             url = "https://mail.google.com/mail/"
-        subprocess.Popen("xdg-open "+url, shell=True)
-
-    
-    def filterNewMail(self, imapserver, inbox):
-        '''returns the ids of new mails since last check in a list'''
-        
-        imapserver.select(inbox)
-        msgids = imapserver.search(None, "(UNSEEN)")[1][0].split(" ")
-        if not len(msgids[0]) > 0:
-            msgids = []
-        
-        # store msgids of messages we already notified about in self.oldmail
-        new = []
-        for msgid in msgids:
-            if not msgid in self.oldmail:
-                new.append(msgid)
-        
-        # regenerate the oldmail-list with all mails we processed yet
-        # and because we already processed all mails this is equivalent to the 
-        # ones that are yet unread
         self.indicators = []
-        self.oldmail = []
-        for msgid in msgids:
-            self.addIndicator("nothing yet")
-            self.oldmail.append(msgid)
-        
-        return new
+        subprocess.Popen("xdg-open "+url, shell=True)
     
     def checkmail(self):
         '''calls getnewmail() to retrieve new mails and presents them via
@@ -163,15 +144,23 @@ class CheckMail():
         
         # Connect to IMAP - No check for valid credentials. When they edit them manually
         # it's their fault ;-)
-        self.gmapi.connect().addCallback(self._connected)
+        self.playedsound = False
+        for mailbox in self.mailboxes:
+            gmapi = GMail(*self.creds)
+            gmapi.connect().addCallback(self._connected, gmapi, mailbox)
+        
+        return True
     
-    def displaymail(self, newmail):
-        # FIXME
+    def displaymail(self, newmail, mailbox):
+        # Mailbox Names:
+        mailboxes = {   "INBOX": _("Inbox"),
+                        "[Google Mail]/All Mail": _("All Mail"),
+                        "[Google Mail]/Starred": _("Starred") }
+        
         # aggregate the titles of the messages... cut the string if longer than 20 chars
         titles = ""
-        newmail = self.filterNewMail(imapserver, "INBOX")
-        for msgid in newmail:
-            title = imapserver.fetch(msgid, "(BODY[HEADER.FIELDS (SUBJECT)])")[1][0][1].strip(" \r\n")[9:]
+        for title in newmail:
+            self.addIndicator(title)
             if len(title) > 20:
                 title = title[0:20] + "..."
             if len(title) == 0:
@@ -182,19 +171,21 @@ class CheckMail():
             else:
                 titles += "\n- " + title
         
-        # Disconnect
-        imapserver.close()
-        imapserver.logout()
-        
         # play a sound?
-        if len(newmail) > 0 and self.player:
+        if len(newmail) > 0 and self.player and not self.playedsound:
             self.player.set_state(gst.STATE_PLAYING)
+            self.playedsound = True
         
         # create notifications and play sound
+        if mailbox in mailboxes:
+            mbox = _("in") + " " + mailboxes[mailbox] + ":\n\n"
+        else:
+            mbox = _("in label") + " " + mailbox + ":\n\n"
+            
         if not "\n" in titles and not titles == "":
-            self.showNotification(_("Incoming message"), titles)
+            self.showNotification(_("Incoming message"), mbox + titles)
         elif "\n" in titles:
-            self.showNotification(str(len(newmail)) + " " + _("new messages"), "- " + titles)
+            self.showNotification(str(len(newmail)) + " " + _("new messages"), mbox + "- " + titles)
     
         return True
     
@@ -218,19 +209,42 @@ class CheckMail():
         new_indicator.show()
         self.indicators.append(new_indicator)
     
-    def _connected(self, protocol):
+    def saveoldmails(self):
+        oldlist = []
+        for oldmail in self.oldmail.iteritems():
+            oldlist.append("!%)".join([str(e) for e in oldmail]))
+        
+        self.client.set_list("/apps/gm-notify/oldmail", gconf.VALUE_STRING, oldlist)
+    
+    def _connected(self, protocol, gmapi, mailbox):
         '''We entered connected state, need to authenticate now'''
         
-        self.gmapi.protocol.login().addCallback(self._logged_in)
+        gmapi.protocol.login().addCallback(self._logged_in, gmapi, mailbox)
     
-    def _logged_in(self, result):
-        for mailbox in self.mailboxes:
-            self.gmapi.protocol.select(mailbox).addCallback(self._selected_mailbox)
+    def _logged_in(self, result, gmapi, mailbox):
+        '''We are logged in. Examine the given mailbox'''
+        
+        print "logged in"
+        gmapi.protocol.examine(mailbox).addCallback(self._selected_mailbox, gmapi, mailbox)
     
-    def _selected_mailbox(self, result):
-        self.gmapi.getIDs().addCallback(self._got_msgids)
+    def _selected_mailbox(self, result, gmapi, mailbox):
+        if not mailbox in self.oldmail:
+            self.oldmail[mailbox] = 0
+        if result['EXISTS'] > self.oldmail[mailbox]:
+            gmapi.getSubjects(self.oldmail[mailbox] + 1).addCallback(self._got_subjects, gmapi, mailbox)
+        else:
+            gmapi.protocol.logout()
+            gmapi.protocol = None
+            
+        self.oldmail[mailbox] = result['EXISTS']
+        self.saveoldmails()
     
-    def _got_msgids(self, result):
-        print result
+    def _got_subjects(self, result, gmapi, mailbox):
+        gmapi.protocol.logout()
+        gmapi.protocol = None
+        
+        titles = [mail[1][0][2][9:].strip("\n\r ") for mail in result.iteritems()]
+        titles.reverse()
+        self.displaymail(titles, mailbox)
 
 cm = CheckMail()

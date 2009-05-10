@@ -5,6 +5,7 @@ import sys
 import os
 import gettext
 import subprocess
+
 import pynotify
 import pygtk
 pygtk.require("2.0")
@@ -53,15 +54,12 @@ class Window:
         self.wTree.get_widget("checkbutton_sound").set_active(self.client.get_bool("/apps/gm-notify/play_sound"))
         self.on_checkbutton_sound_toggled(self.wTree.get_widget("checkbutton_sound"))
         
-        # Mark read
-        self.wTree.get_widget("checkbutton_pop3").set_active(self.client.get_bool("/apps/gm-notify/mark_read"))
-        
         # Inboxes
         inboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
         if inboxes:
             self.wTree.get_widget("checkbutton_inbox").set_active("INBOX" in inboxes)
-            self.wTree.get_widget("checkbutton_allmail").set_active("[Gmail]/All Mail" in inboxes)
-            self.wTree.get_widget("checkbutton_starred").set_active("[Gmail]/Starred" in inboxes)
+            self.wTree.get_widget("checkbutton_allmail").set_active("[Google Mail]/All Mail" in inboxes)
+            self.wTree.get_widget("checkbutton_starred").set_active("[Google Mail]/Starred" in inboxes)
         else:
             self.wTree.get_widget("checkbutton_inbox").set_active(True)
         
@@ -111,17 +109,14 @@ class Window:
         self.keys.set_credentials(( self.wTree.get_widget("input_user").get_text(), 
                                     self.wTree.get_widget("input_password").get_text()))
         
-        # Mark read
-        self.client.set_bool("/apps/gm-notify/mark_read", self.wTree.get_widget("checkbutton_pop3").get_active())
-        
         # Inboxes
         inboxes = []
         if self.wTree.get_widget("checkbutton_inbox").get_active():
             inboxes.append("INBOX")
         if self.wTree.get_widget("checkbutton_allmail").get_active():
-            inboxes.append("[Gmail]/All Mail")
+            inboxes.append("[Google Mail]/All Mail")
         if self.wTree.get_widget("checkbutton_starred").get_active():
-            inboxes.append("[Gmail]/Starred")
+            inboxes.append("[Google Mail]/Starred")
         for child in self.wTree.get_widget("vbox_expanderlabels").get_children():
             if child.get_active():
                 inboxes.append(child.get_label())
