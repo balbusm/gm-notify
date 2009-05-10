@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# gmxdgsoundlib.py v0.8
+# gmxdgsoundlib.py v0.9
 # simple lib to access the xdg-sound-theme specification and retrieve the message-new-email sound.
 #
 # Copyright (c) 2009, Alexander Hungenberg <alexander.hungenberg@gmail.com>
