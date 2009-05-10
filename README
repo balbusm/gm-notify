@@ -1,4 +1,4 @@
-gm-notify 0.8 README
+gm-notify 0.9 README
 ------------------------------------
 
 QUICK INSTALLATION:
@@ -13,13 +13,19 @@ DEPENDENCIES:
 - python-gst0.10
 - python-gtk2
 - python-gconf
+- python-twisted-mail
 
 install via
-sudo apt-get install python-indicate python-notify python-gst0.10 python-gtk2 python-gconf
+sudo apt-get install python-indicate python-notify python-gst0.10 python-gtk2 python-gconf python-twisted-mail
 
 ------------------------------------
 
 RELEASE NOTES:
+
+v0.9:
+- Switched to IMAP backend (twisted), now allowing to check different labels
+- allows to choose if it should start webinterface or native client
+- Fixed many bugs/crashes
 
 v0.8:
 - included Danish translation
@@ -37,13 +43,11 @@ v0.7:
 
 COPYRIGHTS:
 
-gmailatom.py
-was taken from gmail-notify ubuntu-package and written
-by Juan Grande <juan.grande@gmail.com>
-
 keyring.py
 was taken from http://www.rittau.org/blog/20070726-01 and written
 by Sebastian Rittau <srittau@jroger.in-berlin.de>
+
+all the rest is written 2009 by Alexander Hungenberg
 
 ------------------------------------------------------------------------
 
