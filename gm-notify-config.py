@@ -54,6 +54,12 @@ class Window:
         self.wTree.get_widget("checkbutton_sound").set_active(self.client.get_bool("/apps/gm-notify/play_sound"))
         self.on_checkbutton_sound_toggled(self.wTree.get_widget("checkbutton_sound"))
         
+        # ClickAction
+        if self.client.get_bool("/apps/gm-notify/openclient"):
+            self.wTree.get_widget("radiobutton_openclient").set_active(True)
+        else:
+            self.wTree.get_widget("radiobutton_openweb").set_active(True)
+        
         # Inboxes
         inboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
         if inboxes:
@@ -99,7 +105,7 @@ class Window:
             checkinterval = 3600
         else:
             checkinterval = self.wTree.get_widget("spinbutton_checkcustom").get_value()*60
-            
+        
         self.client.add_dir("/apps/gm-notify", gconf.CLIENT_PRELOAD_NONE)
         self.client.set_string("/apps/gm-notify/checkinterval", str(checkinterval))
         if checkinterval < 180:
@@ -121,6 +127,9 @@ class Window:
             if child.get_active():
                 inboxes.append(child.get_label())
         self.client.set_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING, inboxes)
+        
+        # ClickAction
+        self.client.set_bool("/apps/gm-notify/openclient", self.wTree.get_widget("radiobutton_openclient").get_active())
 
         # Soundfile
         if self.wTree.get_widget("checkbutton_sound").get_active():

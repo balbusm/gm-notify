@@ -136,7 +136,11 @@ class CheckMail():
         else:
             url = "https://mail.google.com/mail/"
         self.indicators = []
-        subprocess.Popen("xdg-open "+url, shell=True)
+        if self.client.get_bool("/apps/gm-notify/openclient"):
+            command = self.client.get_string("/desktop/gnome/url-handlers/mailto/command").split(" ")[0]
+            subprocess.Popen(command, shell=True)
+        else:
+            subprocess.Popen("xdg-open "+url, shell=True)
     
     def checkmail(self):
         '''calls getnewmail() to retrieve new mails and presents them via
@@ -152,6 +156,8 @@ class CheckMail():
         return True
     
     def displaymail(self, newmail, mailbox):
+        '''Takes mailbox name and titles of mails, to display notification and add indicators'''
+        
         # Mailbox Names:
         mailboxes = {   "INBOX": _("Inbox"),
                         "[Google Mail]/All Mail": _("All Mail"),
@@ -210,6 +216,8 @@ class CheckMail():
         self.indicators.append(new_indicator)
     
     def saveoldmails(self):
+        '''Save displayed mail count to gconf'''
+        
         oldlist = []
         for oldmail in self.oldmail.iteritems():
             oldlist.append("!%)".join([str(e) for e in oldmail]))
@@ -224,10 +232,11 @@ class CheckMail():
     def _logged_in(self, result, gmapi, mailbox):
         '''We are logged in. Examine the given mailbox'''
         
-        print "logged in"
         gmapi.protocol.examine(mailbox).addCallback(self._selected_mailbox, gmapi, mailbox)
     
     def _selected_mailbox(self, result, gmapi, mailbox):
+        '''mailbox selected. Ready to fetch new mails'''
+        
         if not mailbox in self.oldmail:
             self.oldmail[mailbox] = 0
         if result['EXISTS'] > self.oldmail[mailbox]:
@@ -240,6 +249,8 @@ class CheckMail():
         self.saveoldmails()
     
     def _got_subjects(self, result, gmapi, mailbox):
+        '''got new subjects. Close connection and pass them to displaymail'''
+        
         gmapi.protocol.logout()
         gmapi.protocol = None
         
