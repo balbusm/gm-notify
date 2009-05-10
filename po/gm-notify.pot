@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2009-05-02 00:16+0200\n"
+"POT-Creation-Date: 2009-05-10 14:56+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,131 +16,138 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: gm-config.py:19 gm-notify.py:44
+#: gm-notify.py:51 gm-notify-config.py:22 gm-config.glade:7
 msgid "GMail Notifier"
 msgstr ""
 
-#: gm-config.py:96
-msgid "Short checking interval"
-msgstr ""
-
-#: gm-config.py:96
-msgid "Increasing (more than 3 minutes) is recommended"
-msgstr ""
-
-#: gm-config.py:124 gm-notify.py:79
+#: gm-notify.py:96 gm-notify-config.py:140
 msgid "No sound selected"
 msgstr ""
 
-#: gm-config.py:124 gm-notify.py:79
+#: gm-notify.py:96 gm-notify-config.py:140
 msgid ""
 "Please select a new-message sound in the audio settings or unselect the "
 "corresponding option."
 msgstr ""
 
-#: gm-config.py:166
-msgid "checking..."
-msgstr ""
-
-#: gm-config.py:184
-msgid "Valid credentials"
-msgstr ""
-
-#: gm-config.py:205
-msgid "Invalid credentials"
-msgstr ""
-
-#: gm-notify.py:55 gm-config.glade.h:16
-msgid "Please enter credentials"
-msgstr ""
-
-#: gm-notify.py:55
-msgid ""
-"You didn't complete the configuration. To try again, please restart the "
-"GMail Notifier"
-msgstr ""
-
-#: gm-notify.py:153
-msgid "(no subject)"
-msgstr ""
-
-#: gm-notify.py:170
-msgid "Incoming message"
-msgstr ""
-
-#: gm-notify.py:172
-msgid "new messages"
-msgstr ""
-
-#: gm-config.glade.h:1
-msgid "Account"
-msgstr ""
-
-#: gm-config.glade.h:2
-msgid "All Mail"
-msgstr ""
-
-#: gm-config.glade.h:3
-msgid "Configure sound"
-msgstr ""
-
-#: gm-config.glade.h:4
-msgid "Custom (minutes)"
-msgstr ""
-
-#: gm-config.glade.h:5
-msgid "Enhanced"
-msgstr ""
-
-#: gm-config.glade.h:6
-msgid "Frequently (2 minutes)"
-msgstr ""
-
-#: gm-config.glade.h:7
-msgid "Hardly ever (60 minutes)"
-msgstr ""
-
-#: gm-config.glade.h:8
+#: gm-notify.py:162 gm-config.glade:381
 msgid "Inbox"
 msgstr ""
 
-#: gm-config.glade.h:9
-msgid "Labels"
+#: gm-notify.py:163 gm-config.glade:395
+msgid "All Mail"
 msgstr ""
 
-#: gm-config.glade.h:10
-msgid ""
-"Mark messages as read after showing\n"
-"notification (Required if you retrieve\n"
-"your messages via POP3)"
+#: gm-notify.py:164 gm-config.glade:408
+msgid "Starred"
 msgstr ""
 
-#: gm-config.glade.h:13
-msgid "Message checking interval:"
+#: gm-notify.py:173
+msgid "(no subject)"
 msgstr ""
 
-#: gm-config.glade.h:14
+#: gm-notify.py:187
+msgid "in"
+msgstr ""
+
+#: gm-notify.py:189
+msgid "in label"
+msgstr ""
+
+#: gm-notify.py:192
+msgid "Incoming message"
+msgstr ""
+
+#: gm-notify.py:194
+msgid "new messages"
+msgstr ""
+
+#: gm-notify-config.py:112
+msgid "Short checking interval"
+msgstr ""
+
+#: gm-notify-config.py:112
+msgid "Increasing (more than 3 minutes) is recommended"
+msgstr ""
+
+#: gm-notify-config.py:195
+msgid "checking..."
+msgstr ""
+
+#: gm-notify-config.py:227
+msgid "Valid credentials"
+msgstr ""
+
+#: gm-notify-config.py:242
+msgid "Invalid credentials"
+msgstr ""
+
+#: gm-config.glade:33
+msgid "Username:"
+msgstr ""
+
+#: gm-config.glade:42
 msgid "Password:"
 msgstr ""
 
-#: gm-config.glade.h:15
+#: gm-config.glade:93
+msgid "Please enter credentials"
+msgstr ""
+
+#: gm-config.glade:128
+msgid "Click on applet opens:"
+msgstr ""
+
+#: gm-config.glade:141
+msgid "GMail webinterface"
+msgstr ""
+
+#: gm-config.glade:162
+msgid "Current default mail client"
+msgstr ""
+
+#: gm-config.glade:189
+msgid "Account"
+msgstr ""
+
+#: gm-config.glade:204
 msgid "Play sound when new message arrives"
 msgstr ""
 
-#: gm-config.glade.h:17
+#: gm-config.glade:219
+msgid "Configure sound"
+msgstr ""
+
+#: gm-config.glade:244
+msgid "Message checking interval:"
+msgstr ""
+
+#: gm-config.glade:263
+msgid "Frequently (2 minutes)"
+msgstr ""
+
+#: gm-config.glade:276
+msgid "Sometimes (10 minutes)"
+msgstr ""
+
+#: gm-config.glade:292
+msgid "Hardly ever (60 minutes)"
+msgstr ""
+
+#: gm-config.glade:306
+msgid "Custom (minutes)"
+msgstr ""
+
+#: gm-config.glade:352
+msgid "Enhanced"
+msgstr ""
+
+#: gm-config.glade:370
 msgid ""
 "Please select the appropiate folders\n"
 "that should be checked"
 msgstr ""
 
-#: gm-config.glade.h:19
-msgid "Sometimes (10 minutes)"
-msgstr ""
-
-#: gm-config.glade.h:20
-msgid "Starred"
-msgstr ""
-
-#: gm-config.glade.h:21
-msgid "Username:"
+#: gm-config.glade:443 gm-config.glade:462
+msgid "Labels"
 msgstr ""

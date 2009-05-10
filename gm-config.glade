@@ -138,10 +138,11 @@
                         <property name="left_padding">20</property>
                         <child>
                           <widget class="GtkRadioButton" id="radiobutton_openweb">
-                            <property name="label" translatable="yes">GMail Webinterface</property>
+                            <property name="label" translatable="yes">GMail webinterface</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
+                            <property name="relief">none</property>
                             <property name="active">True</property>
                             <property name="draw_indicator">True</property>
                           </widget>
