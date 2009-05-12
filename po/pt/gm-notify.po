@@ -1,4 +1,4 @@
-# Catalan translation for gm-notify
+# Portuguese translation for gm-notify
 # Copyright (c) 2009 Rosetta Contributors and Canonical Ltd 2009
 # This file is distributed under the same license as the gm-notify package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2009.
@@ -8,9 +8,9 @@ msgstr ""
 "Project-Id-Version: gm-notify\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2009-05-10 14:56+0200\n"
-"PO-Revision-Date: 2009-05-10 23:03+0000\n"
-"Last-Translator: Oriol Vilaro <oriol.vilaro@gmail.com>\n"
-"Language-Team: Catalan <ca@li.org>\n"
+"PO-Revision-Date: 2009-05-10 14:42+0000\n"
+"Last-Translator: mihai007 <mihai.ile@gmail.com>\n"
+"Language-Team: Portuguese <pt@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -19,153 +19,140 @@ msgstr ""
 
 #: gm-notify.py:51 gm-notify-config.py:22 gm-config.glade:7
 msgid "GMail Notifier"
-msgstr "Notificador GMail"
-
-#: gm-notify-config.py:195
-msgid "checking..."
-msgstr "comprovant..."
-
-#: gm-config.glade:33
-msgid "Username:"
-msgstr "Nom d'usuari:"
-
-#: gm-config.glade:42
-msgid "Password:"
-msgstr "Contrasenya:"
-
-#: gm-config.glade:93
-msgid "Please enter credentials"
-msgstr "Si us plau, introduir identificació"
-
-#: gm-config.glade:189
-msgid "Account"
-msgstr "Compte"
-
-#: gm-config.glade:219
-msgid "Configure sound"
-msgstr "Configurar so"
+msgstr "GMail Notifier"
 
 #: gm-notify.py:96 gm-notify-config.py:140
 msgid "No sound selected"
-msgstr "Cap so seleccionat"
+msgstr "Nenhum som detectado"
 
 #: gm-notify.py:96 gm-notify-config.py:140
 msgid ""
 "Please select a new-message sound in the audio settings or unselect the "
 "corresponding option."
 msgstr ""
-"Si us plau, seleccioneu un so per quan hi hagin nous missatges en les "
-"propietats d'àudio o desmarqueu la opció corresponent."
+"Por favor seleccione um som para uma nova mensagem nas opções áudio ou "
+"deseleccione a opção correspondente."
 
 #: gm-notify.py:162 gm-config.glade:381
 msgid "Inbox"
-msgstr "Safata d'entrada"
+msgstr "Caixa de entrada"
 
 #: gm-notify.py:163 gm-config.glade:395
 msgid "All Mail"
-msgstr "Tots els missatges"
+msgstr "Todas as mensagens"
 
 #: gm-notify.py:164 gm-config.glade:408
 msgid "Starred"
-msgstr "Destacats"
+msgstr "Com estrela"
 
 #: gm-notify.py:173
 msgid "(no subject)"
-msgstr "(sense assumpte)"
+msgstr "(sem assunto)"
 
 #: gm-notify.py:187
 msgid "in"
-msgstr "en"
+msgstr "no"
 
 #: gm-notify.py:189
 msgid "in label"
-msgstr "en l'etiqueta"
+msgstr "no marcador"
 
 #: gm-notify.py:192
 msgid "Incoming message"
-msgstr "Missatge entrant"
+msgstr "A receber mensagem"
 
 #: gm-notify.py:194
 msgid "new messages"
-msgstr "missatges nous"
+msgstr "nova(s) mensagem(ns)"
 
 #: gm-notify-config.py:112
 msgid "Short checking interval"
-msgstr "Interval de comprovació curt"
+msgstr "Intervalo de verificação curto"
 
 #: gm-notify-config.py:112
 msgid "Increasing (more than 3 minutes) is recommended"
-msgstr "Es recomana augmentar l'interval com a mínim a 3 minuts"
+msgstr "Aumentado (para mais que 3 minutos) é recomendado"
+
+#: gm-notify-config.py:195
+msgid "checking..."
+msgstr "a verificar..."
 
 #: gm-notify-config.py:227
 msgid "Valid credentials"
-msgstr "Identificació vàlida"
+msgstr "Credenciais válidos"
 
 #: gm-notify-config.py:242
 msgid "Invalid credentials"
-msgstr "Identificació no vàlida"
+msgstr "Credenciais inválidos"
+
+#: gm-config.glade:33
+msgid "Username:"
+msgstr "Utilizador:"
+
+#: gm-config.glade:42
+msgid "Password:"
+msgstr "Senha:"
+
+#: gm-config.glade:93
+msgid "Please enter credentials"
+msgstr "Por favor introduza os credenciais"
 
 #: gm-config.glade:128
 msgid "Click on applet opens:"
-msgstr "Al clicar en l'applet s'obre:"
+msgstr "Ao carregar no applet abre:"
 
 #: gm-config.glade:141
 msgid "GMail webinterface"
-msgstr "Interfície web GMail"
+msgstr "Interface web GMail"
 
 #: gm-config.glade:162
 msgid "Current default mail client"
-msgstr "Client correu per defecte"
+msgstr "Cliente de mensagens actual"
+
+#: gm-config.glade:189
+msgid "Account"
+msgstr "Conta"
 
 #: gm-config.glade:204
 msgid "Play sound when new message arrives"
-msgstr "Reproduir so quan hi hagin nous missatges"
+msgstr "Tocar notificação sonora à chegada das mensagens"
+
+#: gm-config.glade:219
+msgid "Configure sound"
+msgstr "Configurar som"
 
 #: gm-config.glade:244
 msgid "Message checking interval:"
-msgstr "Interval de comprovació de nous missatges:"
+msgstr "Intervalo de verificação por novas mensagens:"
 
 #: gm-config.glade:263
 msgid "Frequently (2 minutes)"
-msgstr "Freqüent (2 minuts)"
+msgstr "Frequentemente (2 minutos)"
 
 #: gm-config.glade:276
 msgid "Sometimes (10 minutes)"
-msgstr "A vegades (10 minuts)"
+msgstr "As vezes (10 minutos)"
 
 #: gm-config.glade:292
 msgid "Hardly ever (60 minutes)"
-msgstr "Gairebé mai (60 minuts)"
+msgstr "De vez em quando (60 minutos)"
 
 #: gm-config.glade:306
 msgid "Custom (minutes)"
-msgstr "Personalitzat (minuts)"
+msgstr "Customizado (em minutos)"
 
 #: gm-config.glade:352
 msgid "Enhanced"
-msgstr "Millorat"
+msgstr "Avançado"
 
 #: gm-config.glade:370
 msgid ""
 "Please select the appropiate folders\n"
 "that should be checked"
 msgstr ""
-"Si us plau selecciona les carpetes\n"
-"que es comprovaran"
+"Por favor seleccione as pastas\n"
+"a serem verificadas"
 
 #: gm-config.glade:443 gm-config.glade:462
 msgid "Labels"
-msgstr "Etiquetes"
-
-#~ msgid "Incoming Message"
-#~ msgstr "Missatge entrant"
-
-#~ msgid " new Messages"
-#~ msgstr " Missatges nous"
-
-#~ msgid "Wrong credentials"
-#~ msgstr "Credencials errònies"
-
-#~ msgid ""
-#~ "Exception caught while refreshing feed. Check your network connection."
-#~ msgstr "Excepció capturada mentre s'actualitzava el canal."
+msgstr "Marcadores"
