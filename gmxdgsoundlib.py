@@ -28,7 +28,10 @@ def findthemedir(name):
     '''reads environment variables and trys to find a suitable directory for a given
     soundtheme name'''
     
-    dirs = os.environ["XDG_DATA_DIRS"].split(":")
+    if "XDG_DATA_DIRS" in os.environ:
+        dirs = os.environ["XDG_DATA_DIRS"].split(":")
+    else:
+        dirs = []
     dirs.append(os.environ["HOME"] + "/.local/share/")
     
     for directory in dirs:

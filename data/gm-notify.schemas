@@ -21,5 +21,33 @@
                 <long>If active the new mail notification sound out of the XDG specification will be taken.</long>
             </locale>
         </schema>
+        <schema>
+            <key>/schemas/apps/gm-notify/mailboxes</key>
+            <applyto>/apps/gm-notify/mailboxes</applyto>
+            <owner>gm-notify</owner>
+            <type>list</type>
+            <locale name="C">
+                <short>List containing mailboxes to check</short>
+            </locale>
+        </schema>
+        <schema>
+            <key>/schemas/apps/gm-notify/oldmail</key>
+            <applyto>/apps/gm-notify/oldmail</applyto>
+            <owner>gm-notify</owner>
+            <type>list</type>
+            <locale name="C">
+                <short>Stores count of already read mail</short>
+            </locale>
+        </schema>
+        <schema>
+            <key>/schemas/apps/gm-notify/openclient</key>
+            <applyto>/apps/gm-notify/openclient</applyto>
+            <owner>gm-notify</owner>
+            <type>bool</type>
+            <default>False</default>
+            <locale name="C">
+                <short>Shall we open the default mail client or webinterface?</short>
+            </locale>
+        </schema>
     </schemalist>
 </gconfschemafile>
