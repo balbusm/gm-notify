@@ -26,6 +26,7 @@
             <applyto>/apps/gm-notify/mailboxes</applyto>
             <owner>gm-notify</owner>
             <type>list</type>
+            <list_type>string</list_type>
             <locale name="C">
                 <short>List containing mailboxes to check</short>
             </locale>
@@ -35,6 +36,7 @@
             <applyto>/apps/gm-notify/oldmail</applyto>
             <owner>gm-notify</owner>
             <type>list</type>
+            <list_type>int</list_type>
             <locale name="C">
                 <short>Stores count of already read mail</short>
             </locale>
