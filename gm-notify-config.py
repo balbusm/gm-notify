@@ -59,12 +59,11 @@ class Window:
         # Init with stored values
         # Credentials
         if self.keys.has_credentials():
-            creds = self.keys.get_credentials()
+            self.creds = self.keys.get_credentials()
         else:
-            creds = ("", "")
-        self.gmapi = gmimap.GMail(*creds)
-        self.wTree.get_widget("input_user").set_text(creds[0])
-        self.wTree.get_widget("input_password").set_text(creds[1])
+            self.creds = ("", "")
+        self.wTree.get_widget("input_user").set_text(self.creds[0])
+        self.wTree.get_widget("input_password").set_text(self.creds[1])
         
         self.check_credentials(None, None)
         
@@ -130,6 +129,7 @@ class Window:
             pynotify.Notification(_("Short checking interval"), _("Increasing (more than 3 minutes) is recommended"), "notification-message-email").show()
         
         # Credentials
+        self.keys.delete_credentials()
         self.keys.set_credentials(( self.wTree.get_widget("input_user").get_text(), 
                                     self.wTree.get_widget("input_password").get_text()))
         
@@ -194,9 +194,6 @@ class Window:
         else:
             spinbutton.hide()
     
-    def test(self, *kargs):
-        print kargs
-    
     def check_credentials(self, widget, event, data=None):
         '''check if the given credentials are valid'''
         
@@ -214,11 +211,12 @@ class Window:
             input_user.set_sensitive(False)
             input_password.set_sensitive(False)
             
-            self.gmapi.connect().addCallback(self.check_credentials2)
+            api = gmimap.GMail(input_user.get_text(), input_password.get_text())
+            api.connect().addCallback(self.check_credentials2, api)
         return False
     
-    def check_credentials2(self, protocol):
-        self.gmapi.protocol.login().addCallback(self.credentials_valid).addErrback(self.credentials_invalid)
+    def check_credentials2(self, protocol, api):
+        api.protocol.login().addCallback(self.credentials_valid, api).addErrback(self.credentials_invalid)
     
     def fillLabels(self, labels):
         expander_labels = self.wTree.get_widget("expander_labels")
@@ -233,8 +231,8 @@ class Window:
             vbox_expanderlabels.pack_start(checkbutton, expand=False)
         vbox_expanderlabels.show_all()
     
-    def credentials_valid(self, result):
-        self.gmapi.getLabels().addCallback(self.fillLabels)
+    def credentials_valid(self, result, api):
+        api.getLabels().addCallback(self.fillLabels)
         input_user = self.wTree.get_widget("input_user")
         input_password = self.wTree.get_widget("input_password")
         image_credentials = self.wTree.get_widget("image_credentials")
@@ -248,7 +246,6 @@ class Window:
         input_password.set_sensitive(True)
     
     def credentials_invalid(self, reason):
-        print reason
         input_user = self.wTree.get_widget("input_user")
         input_password = self.wTree.get_widget("input_password")
         image_credentials = self.wTree.get_widget("image_credentials")
