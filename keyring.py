@@ -26,9 +26,12 @@ class Keyring(object):
     
     def delete_credentials(self):
         attrs = {"server": self._server, "protocol": self._protocol}
-        items = gkey.find_items_sync(gkey.ITEM_NETWORK_PASSWORD, attrs)
-        for item in items:
-            gkey.item_delete_sync(None, item.item_id)
+        try:
+            items = gkey.find_items_sync(gkey.ITEM_NETWORK_PASSWORD, attrs)
+            for item in items:
+                gkey.item_delete_sync(None, item.item_id)
+        except (gkey.DeniedError, gkey.NoMatchError):
+            pass
     
     def set_credentials(self, (user, pw)):
         attrs = {
