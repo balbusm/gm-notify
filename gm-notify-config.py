@@ -223,6 +223,9 @@ class Window:
         vbox_expanderlabels = self.wTree.get_widget("vbox_expanderlabels")
         inboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
         
+        for child in vbox_expanderlabels.get_children():
+            vbox_expanderlabels.remove(child)
+        
         expander_labels.set_sensitive(True)
         
         for label in labels:
