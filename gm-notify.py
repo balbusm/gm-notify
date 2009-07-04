@@ -35,6 +35,8 @@ import gconf
 from twisted.internet import gtk2reactor
 gtk2reactor.install()
 from twisted.internet import reactor
+from email.Header import decode_header
+
 
 from gmimap import GMail
 import keyring
@@ -166,6 +168,13 @@ class CheckMail():
         # aggregate the titles of the messages... cut the string if longer than 20 chars
         titles = ""
         for title in newmail:
+            for header, encoding in decode_header(title):
+                if encoding is not None:
+                    title = header.decode(encoding)
+                else:
+                    title = header.decode()
+
+
             self.addIndicator(title)
             if len(title) > 20:
                 title = title[0:20] + "..."
