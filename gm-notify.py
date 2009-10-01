@@ -217,8 +217,10 @@ class CheckMail():
         '''adds a indicator to the indicator-applet which results in the "unread counter"
         increased by one. The indicator is stored in a class-list to keep the reference.
         If you delete this the indicator will be removed from the applet, too'''
-        
-        new_indicator = indicate.IndicatorMessage()
+        try:
+            new_indicator = indicate.Indicator()
+	except AttributeError:
+            new_indicator = indicate.IndicatorMessage()
         new_indicator.set_property("subtype", "mail")
         new_indicator.set_property("sender", msg)
         new_indicator.show()
