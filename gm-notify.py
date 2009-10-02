@@ -140,6 +140,14 @@ class CheckMail():
         self.indicators = []
         if self.client.get_bool("/apps/gm-notify/openclient"):
             command = self.client.get_string("/desktop/gnome/url-handlers/mailto/command").split(" ")[0]
+            if self.client.get_bool("/desktop/gnome/url-handlers/mailto/needs_terminal"):
+                termCmd = self.client.get_string("/desktop/gnome/applications/terminal/exec")
+		if termCmd:
+			termCmd += " " + self.client.get_string("/desktop/gnome/applications/terminal/exec_arg") + " "
+                else:
+                    termCmd = "gnome-terminal -x "
+                command = termCmd + command
+
             subprocess.Popen(command, shell=True)
         else:
             subprocess.Popen("xdg-open "+url, shell=True)
