@@ -21,7 +21,7 @@
 #
 from twisted.internet import reactor, protocol, ssl, defer
 from twisted.internet.protocol import ClientCreator
-from twisted.mail.imap4 import MessageSet, IMAP4Client
+from twisted.mail.imap4 import MessageSet, IMAP4Client, decoder
 
 class IMAPClient(IMAP4Client):
     def login(self):
@@ -38,7 +38,7 @@ class IMAPClient(IMAP4Client):
             if not onebox[2].startswith("[Google Mail]") \
                and not onebox[2].startswith("[Gmail]") \
                and not onebox[2] == "INBOX":
-                self.labels.append(onebox[2])
+                self.labels.append(decoder(onebox[2])[0])
         deferred.callback(self.labels)
 
 class GMail():
