@@ -42,6 +42,9 @@ if not pynotify.init(_("GMail Notifier")):
 
 class Window:
     def __init__(self):
+        #####
+        # GUI initialization
+        #####
         self.keys = keyring.Keyring("GMail", "mail.google.com", "http")
         self.client = gconf.client_get_default()
         
@@ -56,7 +59,10 @@ class Window:
         self.window = self.wTree.get_widget("gmnotify_config_main")
         self.window.show_all()
         
+        #####
         # Init with stored values
+        #####
+        
         # Credentials
         if self.keys.has_credentials():
             self.creds = self.keys.get_credentials()
@@ -68,8 +74,8 @@ class Window:
         self.check_credentials(None, None)
         
         # Sound
-        self.wTree.get_widget("checkbutton_sound").set_active(self.client.get_bool("/apps/gm-notify/play_sound"))
-        self.on_checkbutton_sound_toggled(self.wTree.get_widget("checkbutton_sound"))
+#        self.wTree.get_widget("checkbutton_sound").set_active(self.client.get_bool("/apps/gm-notify/play_sound"))
+#        self.on_checkbutton_sound_toggled(self.wTree.get_widget("checkbutton_sound"))
         
         # ClickAction
         if self.client.get_bool("/apps/gm-notify/openclient"):
@@ -78,55 +84,27 @@ class Window:
             self.wTree.get_widget("radiobutton_openweb").set_active(True)
         
         # Inboxes
-        inboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
-        if inboxes:
-            self.wTree.get_widget("checkbutton_inbox").set_active("INBOX" in inboxes)
-            self.wTree.get_widget("checkbutton_allmail").set_active("[Google Mail]/All Mail" in inboxes)
-            self.wTree.get_widget("checkbutton_starred").set_active("[Google Mail]/Starred" in inboxes)
-        else:
-            self.wTree.get_widget("checkbutton_inbox").set_active(True)
-        
-        # Checkinterval
-        if self.client.get_string("/apps/gm-notify/checkinterval"):
-            checkinterval = float(self.client.get_string("/apps/gm-notify/checkinterval"))
-        else:
-            checkinterval = 600
-        if checkinterval == 120:
-            self.wTree.get_widget("radiobutton_checkfrequently").set_active(True)
-        elif checkinterval == 600:
-            self.wTree.get_widget("radiobutton_checksometimes").set_active(True)
-        elif checkinterval == 3600:
-            self.wTree.get_widget("radiobutton_checkhardlyever").set_active(True)
-        else:
-            self.wTree.get_widget("radiobutton_checkcustom").set_active(True)
-            self.wTree.get_widget("spinbutton_checkcustom").set_value(checkinterval/60.0)
-        self.on_radiobutton_checkcustom_toggled(self.wTree.get_widget("radiobutton_checkcustom"))
+#        inboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
+#        if inboxes:
+#            self.wTree.get_widget("checkbutton_inbox").set_active("INBOX" in inboxes)
+#            self.wTree.get_widget("checkbutton_allmail").set_active("[Google Mail]/All Mail" in inboxes)
+#            self.wTree.get_widget("checkbutton_starred").set_active("[Google Mail]/Starred" in inboxes)
+#        else:
+#            self.wTree.get_widget("checkbutton_inbox").set_active(True)
         
         signals = { "gtk_main_quit": self.terminate,
                     "on_button_apply_clicked": self.save,
                     "on_input_password_focus_out_event": self.check_credentials,
-                    "on_button_sound_clicked": self.on_button_sound_clicked,
-                    "on_checkbutton_sound_toggled": self.on_checkbutton_sound_toggled,
-                    "on_radiobutton_checkcustom_toggled": self.on_radiobutton_checkcustom_toggled }
+#                    "on_button_sound_clicked": self.on_button_sound_clicked,
+#                    "on_checkbutton_sound_toggled": self.on_checkbutton_sound_toggled,
+#                    "on_radiobutton_checkcustom_toggled": self.on_radiobutton_checkcustom_toggled
+        }
         self.wTree.signal_autoconnect(signals)
     
     def save(self, widget, data=None):
         '''saves the entered data and closes the app'''
         
-        # Checkinterval
-        if self.wTree.get_widget("radiobutton_checkfrequently").get_active():
-            checkinterval = 120
-        elif self.wTree.get_widget("radiobutton_checksometimes").get_active():
-            checkinterval = 600
-        elif self.wTree.get_widget("radiobutton_checkhardlyever").get_active():
-            checkinterval = 3600
-        else:
-            checkinterval = self.wTree.get_widget("spinbutton_checkcustom").get_value()*60
-        
         self.client.add_dir("/apps/gm-notify", gconf.CLIENT_PRELOAD_NONE)
-        self.client.set_string("/apps/gm-notify/checkinterval", str(checkinterval))
-        if checkinterval < 180:
-            pynotify.Notification(_("Short checking interval"), _("Increasing (more than 3 minutes) is recommended"), "notification-message-email").show()
         
         # Credentials
         self.keys.delete_credentials()
@@ -135,12 +113,6 @@ class Window:
         
         # Inboxes
         inboxes = []
-        if self.wTree.get_widget("checkbutton_inbox").get_active():
-            inboxes.append("INBOX")
-        if self.wTree.get_widget("checkbutton_allmail").get_active():
-            inboxes.append("[Google Mail]/All Mail")
-        if self.wTree.get_widget("checkbutton_starred").get_active():
-            inboxes.append("[Google Mail]/Starred")
         for child in self.wTree.get_widget("vbox_expanderlabels").get_children():
             if child.get_active():
                 inboxes.append(child.get_label())
@@ -150,15 +122,15 @@ class Window:
         self.client.set_bool("/apps/gm-notify/openclient", self.wTree.get_widget("radiobutton_openclient").get_active())
 
         # Soundfile
-        if self.wTree.get_widget("checkbutton_sound").get_active():
-            if soundlib.findsoundfile(self.client.get_string("/desktop/gnome/sound/theme_name")):
-                self.client.set_bool("/apps/gm-notify/play_sound", True)
-                reactor.stop()
-            else:
-                pynotify.Notification(_("No sound selected"), _("Please select a new-message sound in the audio settings or unselect the corresponding option."), "notification-message-email").show()
-        else:
-            self.client.set_bool("/apps/gm-notify/play_sound", False)
-            reactor.stop()
+#        if self.wTree.get_widget("checkbutton_sound").get_active():
+#            if soundlib.findsoundfile(self.client.get_string("/desktop/gnome/sound/theme_name")):
+#                self.client.set_bool("/apps/gm-notify/play_sound", True)
+#                reactor.stop()
+#            else:
+#                pynotify.Notification(_("No sound selected"), _("Please select a new-message sound in the audio settings or unselect the corresponding option."), "notification-message-email").show()
+#        else:
+#            self.client.set_bool("/apps/gm-notify/play_sound", False)
+#            reactor.stop()
 
         # Start gm-notify itself
         if os.path.exists("./gm-notify.py"):
@@ -173,26 +145,19 @@ class Window:
     def terminate(self, widget):
         reactor.stop()
         
-    def on_checkbutton_sound_toggled(self, widget, data=None):
-        button = self.wTree.get_widget("button_sound")
-        if widget.get_active():
-            button.set_sensitive(True)
-        else:
-            button.set_sensitive(False)
-    
-    def on_button_sound_clicked(self, widget, data=None):
-        self.window.set_sensitive(False)
-        while gtk.events_pending():
-            gtk.main_iteration()
-        subprocess.call("gnome-sound-properties", shell=True)
-        self.window.set_sensitive(True)
-    
-    def on_radiobutton_checkcustom_toggled(self, widget, data=None):
-        spinbutton = self.wTree.get_widget("spinbutton_checkcustom")
-        if widget.get_active():
-            spinbutton.show()
-        else:
-            spinbutton.hide()
+#    def on_checkbutton_sound_toggled(self, widget, data=None):
+#        button = self.wTree.get_widget("button_sound")
+#        if widget.get_active():
+#            button.set_sensitive(True)
+#        else:
+#            button.set_sensitive(False)
+#    
+#    def on_button_sound_clicked(self, widget, data=None):
+#        self.window.set_sensitive(False)
+#        while gtk.events_pending():
+#            gtk.main_iteration()
+#        subprocess.call("gnome-sound-properties", shell=True)
+#        self.window.set_sensitive(True)
     
     def check_credentials(self, widget, event, data=None):
         '''check if the given credentials are valid'''

@@ -1,6 +1,7 @@
 [Desktop Entry]
 Encoding=UTF-8
 Name=GMail Notifier
+Comment=An E-Mail Notifier for Google Mail
 Icon=evolution
 Type=Application
 Categories=Network;
