@@ -108,10 +108,9 @@ class CheckMail():
         self.mailboxes.insert(0, "inbox")
         self.initial = True # Prevents draw-attention to be set when started
         self.addMailboxIndicators()
-        self.checker = MailChecker(self.jid, self.creds[1], self.mailboxes, self.new_mail, self.update_count)
+        self.checker = MailChecker(self.jid, self.creds[1], self.mailboxes[1:], self.new_mail, self.update_count)
         
         # Check every xx seconds
-        gobject.timeout_add_seconds(60, self.checker.queryInbox)
         reactor.run()
     
 #    def gst_message(self, bus, message):
@@ -131,19 +130,20 @@ class CheckMail():
     def update_count(self, count):
         for mailbox in count.iteritems():
             i = self.indicators[mailbox[0]]
-            if int(i.get_property("count")) < int(mailbox[1]) and not self.initial:
-                i.set_property("draw-attention", "true")
-            elif int(i.get_property("count")) > int(mailbox[1]):
+            if int(i.get_property("count")) > int(mailbox[1]):
                 i.set_property("draw-attention", "false")
             i.set_property("count", unicode(mailbox[1]))
         self.initial = False
     
     def new_mail(self, mails):
         '''Takes mailbox name and titles of mails, to display notification and add indicators'''
-        
         text = ""
         # aggregate the titles of the messages... cut the string if longer than 30 chars
         for mail in mails:
+            self.indicators['inbox'].set_property("draw-attention", "true")
+            for label in mail['labels']:
+                if label in self.indicators:
+                    self.indicators[label].set_property("draw-attention", "true")
             if "sender_name" in mail: text += mail['sender_name'] + ":\n"
             elif "sender_address" in mail: text += mail['sender_address'] + ":\n"
             
