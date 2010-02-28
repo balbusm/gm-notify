@@ -1,11 +1,19 @@
+from threading import Event
+
+from twisted.internet.protocol import ReconnectingClientFactory
 from twisted.words.protocols.jabber import xmlstream, client, jid
 from twisted.words.xish import domish
-from twisted.internet import reactor
+from twisted.internet import reactor, task
 
 COLOR_GREEN = "\033[92m"
 COLOR_END = "\033[0m"
 def DEBUG(msg):
-    print COLOR_GREEN + msg + COLOR_END
+    print COLOR_GREEN + str(msg) + COLOR_END
+
+class GTalkClientFactory(xmlstream.XmlStreamFactory):
+    def __init__(self, jid, password):
+        a = client.XMPPAuthenticator(jid, password)
+        xmlstream.XmlStreamFactory.__init__(self, a)
 
 class MailChecker():
     def __init__(self, jid, password, labels, cb_new, cb_count):
@@ -20,54 +28,102 @@ class MailChecker():
         self.labels = labels
         self.labels_iter = iter(self.labels)
         self.count = {}
-        # True: use mailbox to fill labels with unread count
-        # False: Got new mail: query since tid and display notification
+        
+        # indicates whether we are in a state ready for complete interaction
+        # (Authentication and Usersetting finished)
+        # not disconnected, no query running
+        self.ready_for_query_state = False
+        self.timeout_call_id = None
+        self.query_new_mail = False
+        self.disconnected = True
 
-        self.factory = client.XMPPClientFactory(jid, password)
+        self.factory = GTalkClientFactory(jid, password)
+        self.factory.addBootstrap(xmlstream.STREAM_END_EVENT, self.disconnectCB)
+        self.factory.addBootstrap(xmlstream.STREAM_ERROR_EVENT, self.disconnectCB)
+        self.factory.addBootstrap(xmlstream.INIT_FAILED_EVENT, self.disconnectCB)
         self.factory.addBootstrap(xmlstream.STREAM_CONNECTED_EVENT, self.connectedCB)
         self.factory.addBootstrap(xmlstream.STREAM_AUTHD_EVENT, self.authenticationCB)
-        reactor.connectTCP(self.host, self.port, self.factory)
-
-    def authenticationCB(self, xmlstream):
-        xmlstream.addOnetimeObserver("/iq", self.usersettingIQ)
         
+        self.query_task = task.LoopingCall(self.queryInbox)
+        self.query_task.start(60)
+        
+        self.connector = reactor.connectTCP(self.host, self.port, self.factory)
+    
+    def reply_timeout(self):
+        self.connector.disconnect() # Our reconnecting factory will try the reconnecting
+
+    def send_callback_handler(self, data, callback=None, **kargs):
+        self.timeout_call_id.cancel()
+        if callback:
+            callback(data, **kargs)
+        else:
+            DEBUG("got no callback in send_callback_handler")
+            self.connector.disconnect()
+    
+    def send(self, data, event, callback, **kargs):
+        """Emulates a ping like behaviour - adds a timeout for each response
+        
+        data: Data to be send - e.g. an IQ object (domish.Element)
+        event: Event on which the callback should be called (e.g. "/iq")
+        callback: callback that gets called when the event occurs
+        """
+        
+        self.timeout_call_id = reactor.callLater(5, self.reply_timeout)
+        self.xmlstream.addOnetimeObserver(event, self.send_callback_handler, callback=callback, **kargs)
+        self.xmlstream.send(data)
+    
+    def disconnectCB(self, xmlstream):
+        self.ready_for_query_state = False
+        self.disconnected = True
+        DEBUG("disconnected")
+        
+    def authenticationCB(self, xmlstream):
         # We set the usersetting mail-notification
         iq = domish.Element((None, "iq"), attribs={"type": "set", "id": "user-setting-3"})
         usersetting = iq.addElement(("google:setting", "usersetting"))
         mailnotifications = usersetting.addElement((None, "mailnotifications"))
         mailnotifications.attributes['value'] = "true"
-        xmlstream.send(iq)
+        self.send(iq, "/iq", self.usersettingIQ)
     
     def usersettingIQ(self, iq):
+        self.ready_for_query_state = True
         self.queryInbox()
     
     def queryInbox(self):
+        if not self.ready_for_query_state: return
+        if self.disconnected:
+            self.connector.connect()
+            return
+        self.ready_for_query_state = False
+        
         self.xmlstream.removeObserver("/iq", self.gotNewMail)
-        self.xmlstream.addOnetimeObserver("/iq", self.gotLabel)
         
         iq = domish.Element((None, "iq"), attribs={"type": "get", "id": "mail-request-1"})
         query = iq.addElement(("google:mail:notify", "query"))
-        self.xmlstream.send(iq)
+        self.send(iq, "/iq", self.gotLabel)
     
     def queryLabel(self):
         try:
             label = self.labels_iter.next()
-
-            self.xmlstream.addOnetimeObserver("/iq", self.gotLabel, label=label)
             
             iq = domish.Element((None, "iq"), attribs={"type": "get", "id": "mail-request-1"})
             query = iq.addElement(("google:mail:notify", "query"))
             query.attributes['q'] = "label:%s AND is:unread" % label
-            self.xmlstream.send(iq)
+            self.send(iq, "/iq", self.gotLabel, label=label)
         except StopIteration:
             self.labels_iter = iter(self.labels)
             self.xmlstream.addObserver("/iq", self.gotNewMail)
+            if self.query_new_mail:
+                self.gotNewMail()
             self.cb_count(self.count)
+            self.ready_for_query_state = True
     
     def gotLabel(self, iq, label="inbox"):
         if iq.firstChildElement() and iq.firstChildElement().name == "mailbox":
             mailbox = iq.firstChildElement()
-            self.count[label] = unicode(mailbox.attributes['total-matched'])
+            if label in self.count and self.count[label] < int(mailbox.attributes['total-matched']):
+                self.query_new_mail = True
+            self.count[label] = int(mailbox.attributes['total-matched'])
             
             if label == "inbox":
                 if mailbox.firstChildElement():
@@ -76,24 +132,26 @@ class MailChecker():
             self.queryLabel()
         else:
             DEBUG("ERROR: received unexpected iq after querying for INBOX")
+            self.connector.disconnect()
     
-    def gotNewMail(self, iq):
-        if iq.firstChildElement() and iq.firstChildElement().name == "new-mail":
+    def gotNewMail(self, iq=None):
+        if not iq or (iq.firstChildElement() and iq.firstChildElement().name == "new-mail"):
+            self.ready_for_query_state = False
+            self.query_new_mail = False
             self.xmlstream.removeObserver("/iq", self.gotNewMail)
             
             # Acknowledge iq
-            iq = domish.Element((None, "iq"), attribs={"type": "result", "id": iq.attributes['id']})
-            self.xmlstream.send(iq)
+            if iq:
+                iq = domish.Element((None, "iq"), attribs={"type": "result", "id": iq.attributes['id']})
+                self.xmlstream.send(iq)
             
             # Get the new mail
-            self.xmlstream.addOnetimeObserver("/iq", self.gotNewMailQueryResult)
-            
             iq = domish.Element((None, "iq"), attribs={"type": "get", "id": "mail-request-1"})
             query = iq.addElement(("google:mail:notify", "query"))
             query.attributes['newer-than-tid'] = self.last_tid
-            self.xmlstream.send(iq)
+            self.send(iq, "/iq", self.gotNewMailQueryResult)
         else:
-            DEBUG("ERROR: This was no new mail iq")
+            DEBUG("this was no new mail iq")
     
     def gotNewMailQueryResult(self, iq):
         if iq.firstChildElement() and iq.firstChildElement().name == "mailbox":
@@ -124,7 +182,8 @@ class MailChecker():
                 
                 self.cb_new(mails)
         
-        self.queryInbox()
+        self.ready_for_query_state = True
+        if iq: self.queryInbox()
     
     def rawDataIn(self, buf):
         print u"< %s" % unicode(buf, "utf-8")
@@ -134,6 +193,7 @@ class MailChecker():
     
     def connectedCB(self, xmlstream):
         self.xmlstream = xmlstream
+        self.disconnected = False
         
-        xmlstream.rawDataInFn = self.rawDataIn
-        xmlstream.rawDataOutFn = self.rawDataOut
+#        xmlstream.rawDataInFn = self.rawDataIn
+#        xmlstream.rawDataOutFn = self.rawDataOut
