@@ -216,13 +216,9 @@
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkButton" id="button_sound">
-                    <property name="label" translatable="yes">Configure sound</property>
+                  <widget class="GtkFileChooserButton" id="fcbutton_sound">
                     <property name="visible">True</property>
-                    <property name="sensitive">False</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">True</property>
-                    <signal name="clicked" handler="on_button_sound_clicked"/>
+                    <property name="create_folders">False</property>
                   </widget>
                   <packing>
                     <property name="expand">False</property>
