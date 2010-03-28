@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# gm-notify.py v0.9
+# gm-notify.py v0.10
 # a simple and lightweight GMail-Notifier for ubuntu starting at 9.04 and preferable notify-osd
 #
 # Copyright (c) 2009, Alexander Hungenberg <alexander.hungenberg@gmail.com>
@@ -45,6 +45,17 @@ MAILBOXES_NAMES = { "inbox": _("Inbox") }
 
 MAILBOXES_URLS = {  "inbox": _("inbox") }
 
+class PathNotFound(Exception): pass
+
+def get_executable_path(name):
+    path = "%s/%s" % (os.getcwd(), name)
+    if os.path.exists(path) and os.access(path, os.X_OK): return path
+    path = "/usr/local/bin/" + name
+    if os.path.exists(path) and os.access(path, os.X_OK): return path
+    path = "/ust/bin/" + name
+    if os.path.exists(path) and os.access(path, os.X_OK): return path
+    raise PathNotFound("%s not found" % name)
+
 class CheckMail():
     def __init__(self):
         '''initiates DBUS-Messaging interface, creates the MailChecker and registers with indicator-applet.
@@ -59,14 +70,10 @@ class CheckMail():
             self.creds = keys.get_credentials()
         else:
             # Start gm-notify-config if no credentials are found
-            if os.path.exists("./gm-notify-config.py"):
-                gm_config_path = "./gm-notify-config.py"
-            elif os.path.exists("/usr/local/bin/gm-notify-config.py"):
-                gm_config_path = "/usr/local/bin/gm-notify-config.py"
-            elif os.path.exists("/usr/bin/gm-notify-config.py"):
-                gm_config_path = "/usr/bin/gm-notify-config.py"
-
-            subprocess.call(gm_config_path)
+            try:
+                subprocess.call(get_executable_path("gm-notify-config.py"))
+            except PathNotFound:
+                print("gm-notify-config utility was not found")
             sys.exit(-1)
         
         # check if we use Google Apps to start the correct webinterface
@@ -110,7 +117,6 @@ class CheckMail():
         self.addMailboxIndicators()
         self.checker = MailChecker(self.jid, self.creds[1], self.mailboxes[1:], self.new_mail, self.update_count)
         
-        # Check every xx seconds
         reactor.run()
     
 #    def gst_message(self, bus, message):
@@ -120,11 +126,11 @@ class CheckMail():
 #            self.player.set_state(gst.STATE_NULL)
 #            print "Error: %s - %s" % message.parse_error()
     
-    def serverClick(self, server):
+    def serverClick(self, server, timestamp):
         '''called when the server is clicked in the indicator-applet and performs a Mail Check'''
         for indicator in self.indicators:
             self.indicators[indicator].set_property("draw-attention", "false")
-            
+        
         self.checker.queryInbox()
     
     def update_count(self, count):
@@ -159,8 +165,8 @@ class CheckMail():
             
         self.showNotification(_("Incoming message"), text.strip("\n"))
     
-    def labelClick(self, indicator):
-        '''called when a label is clicked in the indiicator-applet and opens the corresponding gmail page'''
+    def labelClick(self, indicator, timestamp):
+        '''called when a label is clicked in the indicator-applet and opens the corresponding gmail page'''
         if self.domain:
             url = "https://mail.google.com/a/"+self.domain+"/"
         else:
@@ -185,7 +191,7 @@ class CheckMail():
                 command = termCmd + command
             subprocess.Popen(command, shell=True)
         else:
-            subprocess.Popen("xdg-open "+url, shell=True)
+            subprocess.Popen(get_executable_path("xdg-open") + " " + url)
     
     def showNotification(self, title, message):
         '''takes a title and a message to display the email notification. Returns the
