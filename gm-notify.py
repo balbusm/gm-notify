@@ -52,7 +52,7 @@ def get_executable_path(name):
     if os.path.exists(path) and os.access(path, os.X_OK): return path
     path = "/usr/local/bin/" + name
     if os.path.exists(path) and os.access(path, os.X_OK): return path
-    path = "/ust/bin/" + name
+    path = "/usr/bin/" + name
     if os.path.exists(path) and os.access(path, os.X_OK): return path
     raise PathNotFound("%s not found" % name)
 
@@ -116,6 +116,7 @@ class CheckMail():
         self.initial = True # Prevents draw-attention to be set when started
         self.addMailboxIndicators()
         self.checker = MailChecker(self.jid, self.creds[1], self.mailboxes[1:], self.new_mail, self.update_count)
+        self.checker.connect()
         
         reactor.run()
     

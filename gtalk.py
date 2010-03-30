@@ -1,6 +1,5 @@
 from threading import Event
 
-from twisted.internet.protocol import ReconnectingClientFactory
 from twisted.words.protocols.jabber import xmlstream, client, jid
 from twisted.words.xish import domish
 from twisted.internet import reactor, task
@@ -16,13 +15,15 @@ class GTalkClientFactory(xmlstream.XmlStreamFactory):
         xmlstream.XmlStreamFactory.__init__(self, a)
 
 class MailChecker():
-    def __init__(self, jid, password, labels, cb_new, cb_count):
+    def __init__(self, jid, password, labels=[], cb_new=None, cb_count=None):
         self.host = "talk.google.com"
         self.port = 5222
         self.jid = jid
         self.password = password
         self.cb_new = cb_new
         self.cb_count = cb_count
+        self.cb_auth_successful = None
+        self.cb_auth_failed = None
         
         self.last_tids = {}
         self.labels = labels
@@ -40,13 +41,14 @@ class MailChecker():
         self.factory = GTalkClientFactory(jid, password)
         self.factory.addBootstrap(xmlstream.STREAM_END_EVENT, self.disconnectCB)
         self.factory.addBootstrap(xmlstream.STREAM_ERROR_EVENT, self.disconnectCB)
-        self.factory.addBootstrap(xmlstream.INIT_FAILED_EVENT, self.disconnectCB)
+        self.factory.addBootstrap(xmlstream.INIT_FAILED_EVENT, self.init_failedCB)
         self.factory.addBootstrap(xmlstream.STREAM_CONNECTED_EVENT, self.connectedCB)
         self.factory.addBootstrap(xmlstream.STREAM_AUTHD_EVENT, self.authenticationCB)
         
         self.query_task = task.LoopingCall(self.queryInbox)
         self.query_task.start(60)
-        
+    
+    def connect(self):
         self.connector = reactor.connectTCP(self.host, self.port, self.factory)
     
     def reply_timeout(self):
@@ -76,8 +78,15 @@ class MailChecker():
         self.ready_for_query_state = False
         self.disconnected = True
         DEBUG("disconnected")
-        
+    
+    def init_failedCB(self, xmlstream):
+        if self.cb_auth_failed: self.cb_auth_failed()
+        self.disconnectCB(xmlstream)
+    
     def authenticationCB(self, xmlstream):
+        if self.cb_auth_successful: self.cb_auth_successful()
+        self.factory.resetDelay()
+        
         # We set the usersetting mail-notification
         iq = domish.Element((None, "iq"), attribs={"type": "set", "id": "user-setting-3"})
         usersetting = iq.addElement(("google:setting", "usersetting"))
@@ -113,8 +122,8 @@ class MailChecker():
         except StopIteration:
             self.labels_iter = iter(self.labels)
             self.xmlstream.addObserver("/iq", self.gotNewMail)
-            self.cb_count(self.count)
-            if self.mails: self.cb_new(self.mails)
+            if self.cb_count: self.cb_count(self.count)
+            if self.mails and self.cb_new: self.cb_new(self.mails)
             self.mails = []
             self.ready_for_query_state = True
     
