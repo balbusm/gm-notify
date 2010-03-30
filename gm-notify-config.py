@@ -88,14 +88,9 @@ class Window:
         else:
             self.wTree.get_widget("radiobutton_openweb").set_active(True)
         
-        # Inboxes
-#        inboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
-#        if inboxes:
-#            self.wTree.get_widget("checkbutton_inbox").set_active("INBOX" in inboxes)
-#            self.wTree.get_widget("checkbutton_allmail").set_active("[Google Mail]/All Mail" in inboxes)
-#            self.wTree.get_widget("checkbutton_starred").set_active("[Google Mail]/Starred" in inboxes)
-#        else:
-#            self.wTree.get_widget("checkbutton_inbox").set_active(True)
+        # Mailboxes
+        mailboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
+        self.wTree.get_widget("entry_labels").set_text(", ".join(mailboxes))
         
         signals = { "gtk_main_quit": self.terminate,
                     "on_button_apply_clicked": self.save,
@@ -116,12 +111,11 @@ class Window:
         self.keys.set_credentials(( self.wTree.get_widget("input_user").get_text(), 
                                     self.wTree.get_widget("input_password").get_text()))
         
-        # Inboxes
-        inboxes = []
-        for child in self.wTree.get_widget("vbox_expanderlabels").get_children():
-            if child.get_active():
-                inboxes.append(child.get_label())
-        self.client.set_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING, inboxes)
+        # Mailboxes
+        mailboxes = []
+        for label in self.wTree.get_widget("entry_labels").get_text().split(","):
+            mailboxes.append(label.strip())
+        self.client.set_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING, mailboxes)
         
         # ClickAction
         self.client.set_bool("/apps/gm-notify/openclient", self.wTree.get_widget("radiobutton_openclient").get_active())
