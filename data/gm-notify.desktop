@@ -1,8 +1,9 @@
+
 [Desktop Entry]
 Encoding=UTF-8
-Name=GMail Notifier
+Name=Google Mail
 Comment=An E-Mail Notifier for Google Mail
-Icon=evolution
+Icon=/usr/share/gm-notify/gmail.png
 Type=Application
 Categories=Network;
 Exec=gm-notify.py
