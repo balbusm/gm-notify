@@ -13,6 +13,11 @@ class GTalkClientFactory(xmlstream.XmlStreamFactory):
     def __init__(self, jid, password):
         a = client.XMPPAuthenticator(jid, password)
         xmlstream.XmlStreamFactory.__init__(self, a)
+        
+        self.reconnect = True
+    
+    def clientConnectionLost(self, connector, reason):
+        if self.reconnect: xmlstream.XmlStreamFactory.clientConnectionLost(self, connector, reason)
 
 class MailChecker():
     def __init__(self, jid, password, labels=[], cb_new=None, cb_count=None):
@@ -37,18 +42,25 @@ class MailChecker():
         self.ready_for_query_state = False
         self.timeout_call_id = None
         self.disconnected = True
-
-        self.factory = GTalkClientFactory(jid, password)
+    
+    def die(self):
+        self.factory.reconnect = False
+        self.query_task.stop()
+        self.connector.disconnect()
+    
+    def connect(self):
+        self.factory = GTalkClientFactory(self.jid, self.password)
         self.factory.addBootstrap(xmlstream.STREAM_END_EVENT, self.disconnectCB)
         self.factory.addBootstrap(xmlstream.STREAM_ERROR_EVENT, self.disconnectCB)
         self.factory.addBootstrap(xmlstream.INIT_FAILED_EVENT, self.init_failedCB)
         self.factory.addBootstrap(xmlstream.STREAM_CONNECTED_EVENT, self.connectedCB)
         self.factory.addBootstrap(xmlstream.STREAM_AUTHD_EVENT, self.authenticationCB)
         
+        self.factory.reconnect = True
+        
         self.query_task = task.LoopingCall(self.queryInbox)
         self.query_task.start(60)
-    
-    def connect(self):
+        
         self.connector = reactor.connectTCP(self.host, self.port, self.factory)
     
     def reply_timeout(self):

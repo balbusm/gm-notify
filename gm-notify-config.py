@@ -32,9 +32,10 @@ import gconf
 from twisted.internet import gtk2reactor
 gtk2reactor.install()
 from twisted.internet import reactor
+from twisted.words.protocols.jabber import jid
 
-import gmimap, keyring
-import gmxdgsoundlib as soundlib
+import keyring
+from gtalk import MailChecker
 
 _ = gettext.translation('gm-notify', fallback=True).ugettext
 if not pynotify.init(_("GMail Notifier")):
@@ -70,6 +71,10 @@ class Window:
             self.creds = ("", "")
         self.wTree.get_widget("input_user").set_text(self.creds[0])
         self.wTree.get_widget("input_password").set_text(self.creds[1])
+        
+        self.api = MailChecker("", "")
+        self.api.cb_auth_successful = self.credentials_valid
+        self.api.cb_auth_failed = self.credentials_invalid
         
         self.check_credentials(None, None)
         
@@ -176,12 +181,10 @@ class Window:
             input_user.set_sensitive(False)
             input_password.set_sensitive(False)
             
-            api = gmimap.GMail(input_user.get_text(), input_password.get_text())
-            api.connect().addCallback(self.check_credentials2, api)
+            self.api.jid = jid.JID(input_user.get_text())
+            self.api.password = input_password.get_text()
+            self.api.connect()
         return False
-    
-    def check_credentials2(self, protocol, api):
-        api.protocol.login().addCallback(self.credentials_valid, api).addErrback(self.credentials_invalid)
     
     def fillLabels(self, labels):
         expander_labels = self.wTree.get_widget("expander_labels")
@@ -199,8 +202,7 @@ class Window:
             vbox_expanderlabels.pack_start(checkbutton, expand=False)
         vbox_expanderlabels.show_all()
     
-    def credentials_valid(self, result, api):
-        api.getLabels().addCallback(self.fillLabels)
+    def credentials_valid(self):
         input_user = self.wTree.get_widget("input_user")
         input_password = self.wTree.get_widget("input_password")
         image_credentials = self.wTree.get_widget("image_credentials")
@@ -212,8 +214,10 @@ class Window:
         button_apply.set_sensitive(True)
         input_user.set_sensitive(True)
         input_password.set_sensitive(True)
+        
+        self.api.die()
     
-    def credentials_invalid(self, reason):
+    def credentials_invalid(self):
         input_user = self.wTree.get_widget("input_user")
         input_password = self.wTree.get_widget("input_password")
         image_credentials = self.wTree.get_widget("image_credentials")
@@ -229,6 +233,8 @@ class Window:
         
         for child in vbox_expanderlabels.get_children():
             vbox_expanderlabels.remove(child)
+        
+        self.api.die()
 
 t = Window()
 reactor.run()
