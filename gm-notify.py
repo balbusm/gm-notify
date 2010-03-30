@@ -140,6 +140,8 @@ class CheckMail():
             if int(i.get_property("count")) > int(mailbox[1]):
                 i.set_property("draw-attention", "false")
             i.set_property("count", unicode(mailbox[1]))
+            if int(mailbox[1]) or mailbox[0] == "inbox": i.show()
+            else: i.hide()
         self.initial = False
     
     def new_mail(self, mails):
@@ -212,9 +214,9 @@ class CheckMail():
             except KeyError:
                 new_indicator.set_property("name", mailbox)
             new_indicator.set_property("count", "0")
-            new_indicator.show()
             new_indicator.label = mailbox
             new_indicator.connect("user-display", self.labelClick)
             self.indicators[mailbox] = new_indicator
+        self.indicators["inbox"].show()
 
 cm = CheckMail()
