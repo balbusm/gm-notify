@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 # gm-notify.py v0.10
-# a simple and lightweight GMail-Notifier for ubuntu starting at 9.04 and preferable notify-osd
+# a simple and lightweight GMail-Notifier for ubuntu and notify-osd
 #
-# Copyright (c) 2009, Alexander Hungenberg <alexander.hungenberg@gmail.com>
+# Copyright (c) 2009-2010, Alexander Hungenberg <alexander.hungenberg@gmail.com>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -76,7 +76,7 @@ class CheckMail():
             try:
                 subprocess.call(get_executable_path("gm-notify-config.py"))
             except PathNotFound:
-                print("gm-notify-config utility was not found")
+                print(_("gm-notify-config utility was not found"))
             sys.exit(-1)
         
         # check if we use Google Apps to start the correct webinterface

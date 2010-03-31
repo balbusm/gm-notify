@@ -1,11 +1,12 @@
-gm-notify 0.9 README
+gm-notify 0.10 README
 ------------------------------------
 
 QUICK INSTALLATION:
 # Execute the setup.py script as root
-sudo ./setup.py install
+sudo python setup.py install
 
-To run the notifier just choose it's Application Entry from Applications-Network-Gmail Notifier. The Configuration-Dialog is placed unter System-Settings-GMail Notifier Configuration.
+To run the notifier bring up the indicator applet and select its entry.
+The Configuration-Dialog is placed unter System-Settings-GMail Notifier Configuration.
 
 DEPENDENCIES:
 - python-indicate
@@ -13,14 +14,20 @@ DEPENDENCIES:
 - python-gst0.10
 - python-gtk2
 - python-gconf
-- python-twisted-mail
+- python-twisted-words
 
 install via
-sudo apt-get install python-indicate python-notify python-gst0.10 python-gtk2 python-gconf python-twisted-mail
+sudo apt-get install python-indicate python-notify python-gst0.10 python-gtk2 python-gconf python-twisted-words
 
 ------------------------------------
 
 RELEASE NOTES:
+
+v0.10:
+- Written for Lucid 10.04 (no warranty that older versions will be supported)
+- Finally switched to Google Talk backend for instant mail notification (hopefully this time it'll last longer ;-) )
+- Labels with a count of 0 will be hidden (except Inbox)
+- Sound properties work again
 
 v0.9:
 - Switched to IMAP backend (twisted), now allowing to check different labels
@@ -47,7 +54,11 @@ keyring.py
 was taken from http://www.rittau.org/blog/20070726-01 and written
 by Sebastian Rittau <srittau@jroger.in-berlin.de>
 
-all the rest is written 2009 by Alexander Hungenberg
+gm-notify.png
+was taken from http://gnome-look.org/content/show.php/Gmail+Icon+(M+envelope)?content=105022 and designed
+by Derma Amred
+
+all the rest is written 2009-2010 by Alexander Hungenberg
 
 ------------------------------------------------------------------------
 
