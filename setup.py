@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 
 from distutils.core import setup
-import subprocess
 
 setup(  name='gm-notify',
         version='0.9',
-        description='Highly Ubuntu 9.04 integrated GMail Notifier',
+        description='Highly Ubuntu integrated GMail Notifier',
         author='Alexander Hungenberg',
         author_email='alexander.hungenberg@gmail.com',
         py_modules=['gtalk', 'keyring',],
@@ -13,6 +12,7 @@ setup(  name='gm-notify',
         data_files=[('/usr/share/applications', ['data/gm-notify.desktop']),
                     ('/usr/share/applications', ['data/gm-notify-config.desktop']),
                     ('/usr/share/gm-notify', ['data/checking.gif']),
+                    ('/usr/share/icons/hicolor/16x16/apps/', ['data/gm-notify.png']),
                     ('/usr/share/gm-notify', ['gm-config.glade']),
                     ('/etc/gconf/schemas', ['data/gm-notify.schemas']),
                     ('/usr/share/locale/da/LC_MESSAGES', ['po/da/gm-notify.mo']),

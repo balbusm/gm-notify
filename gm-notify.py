@@ -61,6 +61,9 @@ class CheckMail():
         '''initiates DBUS-Messaging interface, creates the MailChecker and registers with indicator-applet.
         In the end it starts the periodic check timer and a gtk main-loop'''
         
+        # Kill running gm-notify processes (UGLY!)
+        subprocess.call("kill `pgrep -f gm-notify.py | grep -v %s`" % os.getpid(), stdout=open("/dev/null", "w"), shell=True)
+        
         # Initiate pynotify and Gnome Keyring
         if not pynotify.init(_("GMail Notifier")):
             sys.exit(-1)
@@ -113,7 +116,6 @@ class CheckMail():
         # Retrieve the mailbox we're gonna check
         self.mailboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
         self.mailboxes.insert(0, "inbox")
-        self.initial = True # Prevents draw-attention to be set when started
         self.addMailboxIndicators()
         self.checker = MailChecker(self.jid, self.creds[1], self.mailboxes[1:], self.new_mail, self.update_count)
         self.checker.connect()
@@ -142,7 +144,6 @@ class CheckMail():
             i.set_property("count", unicode(mailbox[1]))
             if int(mailbox[1]) or mailbox[0] == "inbox": i.show()
             else: i.hide()
-        self.initial = False
     
     def new_mail(self, mails):
         '''Takes mailbox name and titles of mails, to display notification and add indicators'''
@@ -194,7 +195,7 @@ class CheckMail():
                 command = termCmd + command
             subprocess.Popen(command, shell=True)
         else:
-            subprocess.Popen(get_executable_path("xdg-open") + " " + url)
+            subprocess.call([get_executable_path("xdg-open"), url])
     
     def showNotification(self, title, message):
         '''takes a title and a message to display the email notification. Returns the
