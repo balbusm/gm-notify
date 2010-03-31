@@ -1,16 +1,6 @@
 <gconfschemafile>
     <schemalist>
         <schema>
-            <key>/schemas/apps/gm-notify/checkinterval</key>
-            <applyto>/apps/gm-notify/checkinterval</applyto>
-            <owner>gm-notify</owner>
-            <type>string</type>
-            <default>90</default>
-            <locale name="C">
-                <short>Duration in seconds between two mail checks</short>
-            </locale>
-        </schema>
-        <schema>
             <key>/schemas/apps/gm-notify/play_sound</key>
             <applyto>/apps/gm-notify/play_sound</applyto>
             <owner>gm-notify</owner>
@@ -18,7 +8,16 @@
             <default>False</default>
             <locale name="C">
                 <short>Shall we play a sound on new mail?</short>
-                <long>If active the new mail notification sound out of the XDG specification will be taken.</long>
+            </locale>
+        </schema>
+        <schema>
+            <key>/schemas/apps/gm-notify/soundfile</key>
+            <applyto>/apps/gm-notify/soundfile</applyto>
+            <owner>gm-notify</owner>
+            <type>string</type>
+            <default></default>
+            <locale name="C">
+                <short>Path to the soundfile which should be played when a new mail arrives</short>
             </locale>
         </schema>
         <schema>
@@ -29,16 +28,6 @@
             <list_type>string</list_type>
             <locale name="C">
                 <short>List containing mailboxes to check</short>
-            </locale>
-        </schema>
-        <schema>
-            <key>/schemas/apps/gm-notify/oldmail</key>
-            <applyto>/apps/gm-notify/oldmail</applyto>
-            <owner>gm-notify</owner>
-            <type>list</type>
-            <list_type>int</list_type>
-            <locale name="C">
-                <short>Stores count of already read mail</short>
             </locale>
         </schema>
         <schema>

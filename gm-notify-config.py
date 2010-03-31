@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# gm-notify-config.py v0.9
+# gm-notify-config.py v0.10
 # GMail Notifier Configuration Utility
 #
-# Copyright (c) 2009, Alexander Hungenberg <alexander.hungenberg@gmail.com>
+# Copyright (c) 2009-2010, Alexander Hungenberg <alexander.hungenberg@gmail.com>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

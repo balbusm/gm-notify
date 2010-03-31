@@ -1,13 +1,35 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# gtalk.py v0.10
+# Google Talk mail notification client library
+#
+# Copyright (c) 2009-2010, Alexander Hungenberg <alexander.hungenberg@gmail.com>
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 from threading import Event
 
 from twisted.words.protocols.jabber import xmlstream, client, jid
 from twisted.words.xish import domish
 from twisted.internet import reactor, task
 
+_DEBUG = False
 COLOR_GREEN = "\033[92m"
 COLOR_END = "\033[0m"
 def DEBUG(msg):
-    print COLOR_GREEN + str(msg) + COLOR_END
+    if _DEBUG: print COLOR_GREEN + str(msg) + COLOR_END
 
 class GTalkClientFactory(xmlstream.XmlStreamFactory):
     def __init__(self, jid, password):
@@ -229,5 +251,6 @@ class MailChecker():
         self.xmlstream = xmlstream
         self.disconnected = False
         
-        xmlstream.rawDataInFn = self.rawDataIn
-        xmlstream.rawDataOutFn = self.rawDataOut
+        if _DEBUG:
+            xmlstream.rawDataInFn = self.rawDataIn
+            xmlstream.rawDataOutFn = self.rawDataOut
