@@ -180,22 +180,6 @@ class Window:
             self.api.connect()
         return False
     
-    def fillLabels(self, labels):
-        expander_labels = self.wTree.get_widget("expander_labels")
-        vbox_expanderlabels = self.wTree.get_widget("vbox_expanderlabels")
-        inboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
-        
-        for child in vbox_expanderlabels.get_children():
-            vbox_expanderlabels.remove(child)
-        
-        expander_labels.set_sensitive(True)
-        
-        for label in labels:
-            checkbutton = gtk.CheckButton(label=label)
-            checkbutton.set_active(label in inboxes)
-            vbox_expanderlabels.pack_start(checkbutton, expand=False)
-        vbox_expanderlabels.show_all()
-    
     def credentials_valid(self):
         input_user = self.wTree.get_widget("input_user")
         input_password = self.wTree.get_widget("input_password")
@@ -216,17 +200,11 @@ class Window:
         input_password = self.wTree.get_widget("input_password")
         image_credentials = self.wTree.get_widget("image_credentials")
         label_credentials = self.wTree.get_widget("label_credentials")
-        expander_labels = self.wTree.get_widget("expander_labels")
-        vbox_expanderlabels = self.wTree.get_widget("vbox_expanderlabels")
         
         image_credentials.set_from_icon_name("gtk-stop", gtk.ICON_SIZE_MENU)
         label_credentials.set_text(_("Invalid credentials"))
-        expander_labels.set_sensitive(False)
         input_user.set_sensitive(True)
         input_password.set_sensitive(True)
-        
-        for child in vbox_expanderlabels.get_children():
-            vbox_expanderlabels.remove(child)
         
         self.api.die()
 
