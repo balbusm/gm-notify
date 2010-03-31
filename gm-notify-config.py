@@ -41,6 +41,17 @@ _ = gettext.translation('gm-notify', fallback=True).ugettext
 if not pynotify.init(_("GMail Notifier")):
     sys.exit(-1)
 
+class PathNotFound(Exception): pass
+
+def get_executable_path(name):
+    path = "%s/%s" % (os.getcwd(), name)
+    if os.path.exists(path) and os.access(path, os.X_OK): return path
+    path = "/usr/local/bin/" + name
+    if os.path.exists(path) and os.access(path, os.X_OK): return path
+    path = "/usr/bin/" + name
+    if os.path.exists(path) and os.access(path, os.X_OK): return path
+    raise PathNotFound("%s not found" % name)
+
 class Window:
     def __init__(self):
         #####
@@ -79,8 +90,9 @@ class Window:
         self.check_credentials(None, None)
         
         # Sound
-#        self.wTree.get_widget("checkbutton_sound").set_active(self.client.get_bool("/apps/gm-notify/play_sound"))
-#        self.on_checkbutton_sound_toggled(self.wTree.get_widget("checkbutton_sound"))
+        self.wTree.get_widget("checkbutton_sound").set_active(self.client.get_bool("/apps/gm-notify/play_sound"))
+        self.wTree.get_widget("fcbutton_sound").set_filename(self.client.get_string("/apps/gm-notify/soundfile"))
+        self.on_checkbutton_sound_toggled(self.wTree.get_widget("checkbutton_sound"))
         
         # ClickAction
         if self.client.get_bool("/apps/gm-notify/openclient"):
@@ -95,9 +107,7 @@ class Window:
         signals = { "gtk_main_quit": self.terminate,
                     "on_button_apply_clicked": self.save,
                     "on_input_password_focus_out_event": self.check_credentials,
-#                    "on_button_sound_clicked": self.on_button_sound_clicked,
-#                    "on_checkbutton_sound_toggled": self.on_checkbutton_sound_toggled,
-#                    "on_radiobutton_checkcustom_toggled": self.on_radiobutton_checkcustom_toggled
+                    "on_checkbutton_sound_toggled": self.on_checkbutton_sound_toggled,
         }
         self.wTree.signal_autoconnect(signals)
     
@@ -121,41 +131,20 @@ class Window:
         self.client.set_bool("/apps/gm-notify/openclient", self.wTree.get_widget("radiobutton_openclient").get_active())
 
         # Soundfile
-#        if self.wTree.get_widget("checkbutton_sound").get_active():
-#            if soundlib.findsoundfile(self.client.get_string("/desktop/gnome/sound/theme_name")):
-#                self.client.set_bool("/apps/gm-notify/play_sound", True)
-#                reactor.stop()
-#            else:
-#                pynotify.Notification(_("No sound selected"), _("Please select a new-message sound in the audio settings or unselect the corresponding option."), "notification-message-email").show()
-#        else:
-#            self.client.set_bool("/apps/gm-notify/play_sound", False)
-#            reactor.stop()
+        if self.wTree.get_widget("checkbutton_sound").get_active() and self.wTree.get_widget("fcbutton_sound").get_filename():
+            self.client.set_bool("/apps/gm-notify/play_sound", True)
+            self.client.set_string("/apps/gm-notify/soundfile", str(self.wTree.get_widget("fcbutton_sound").get_filename()))
+        else:
+            self.client.set_bool("/apps/gm-notify/play_sound", False)
 
         # Start gm-notify itself
-        if os.path.exists("./gm-notify.py"):
-            gm_path = "./gm-notify.py"
-        elif os.path.exists("/usr/local/bin/gm-notify.py"):
-            gm_path = "/usr/local/bin/gm-notify.py"
-        elif os.path.exists("/usr/bin/gm-notify.py"):
-            gm_path = "/usr/bin/gm-notify.py"
-        subprocess.Popen(gm_path)
+        subprocess.Popen(get_executable_path("gm-notify.py"))
     
     def terminate(self, widget):
         reactor.stop()
-        
-#    def on_checkbutton_sound_toggled(self, widget, data=None):
-#        button = self.wTree.get_widget("button_sound")
-#        if widget.get_active():
-#            button.set_sensitive(True)
-#        else:
-#            button.set_sensitive(False)
-#    
-#    def on_button_sound_clicked(self, widget, data=None):
-#        self.window.set_sensitive(False)
-#        while gtk.events_pending():
-#            gtk.main_iteration()
-#        subprocess.call("gnome-sound-properties", shell=True)
-#        self.window.set_sensitive(True)
+    
+    def on_checkbutton_sound_toggled(self, widget):
+        self.wTree.get_widget("fcbutton_sound").set_sensitive(self.wTree.get_widget("checkbutton_sound").get_active())
     
     def check_credentials(self, widget, event, data=None):
         '''check if the given credentials are valid'''
