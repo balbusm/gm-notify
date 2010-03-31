@@ -27,9 +27,9 @@ import gettext
 import pynotify
 import indicate
 import gobject
-#import pygst
-#pygst.require("0.10")
-#import gst
+import pygst
+pygst.require("0.10")
+import gst
 import gconf
 from twisted.internet import gtk2reactor
 gtk2reactor.install()
@@ -91,20 +91,16 @@ class CheckMail():
         self.client = gconf.client_get_default()
         
         # init sound
-#        soundfile = soundlib.findsoundfile(self.client.get_string("/desktop/gnome/sound/theme_name"))
-#        if self.client.get_bool("/apps/gm-notify/play_sound"):
-#            if soundfile:
-#                self.player = gst.element_factory_make("playbin", "player")
-#                self.player.set_property("video-sink", gst.element_factory_make("fakesink", "fakesink"))
-#                self.player.set_property("uri", "file://" + soundfile)
-#                bus = self.player.get_bus()
-#                bus.add_signal_watch()
-#                bus.connect("message", self.gst_message)
-#            else:
-#                self.showNotification(_("No sound selected"), _("Please select a new-message sound in the audio settings or unselect the corresponding option."))
-#                sys.exit(-1)
-#        else:
-#            self.player = None
+        soundfile = self.client.get_string("/apps/gm-notify/soundfile")
+        if self.client.get_bool("/apps/gm-notify/play_sound") and soundfile:
+            self.player = gst.element_factory_make("playbin", "player")
+            self.player.set_property("video-sink", gst.element_factory_make("fakesink", "fakesink"))
+            self.player.set_property("uri", "file://" + soundfile)
+            bus = self.player.get_bus()
+            bus.add_signal_watch()
+            bus.connect("message", self.gst_message)
+        else:
+            self.player = None
         
         # Register with Indicator-Applet
         self.server = indicate.indicate_server_ref_default()
@@ -122,18 +118,19 @@ class CheckMail():
         
         reactor.run()
     
-#    def gst_message(self, bus, message):
-#        if message.type == gst.MESSAGE_EOS:
-#            self.player.set_state(gst.STATE_NULL)
-#        elif message.type == gst.MESSAGE_ERROR:
-#            self.player.set_state(gst.STATE_NULL)
-#            print "Error: %s - %s" % message.parse_error()
+    def gst_message(self, bus, message):
+        if message.type == gst.MESSAGE_EOS:
+            self.player.set_state(gst.STATE_NULL)
+        elif message.type == gst.MESSAGE_ERROR:
+            self.player.set_state(gst.STATE_NULL)
+            print "Error: %s - %s" % message.parse_error()
     
     def serverClick(self, server, timestamp):
         '''called when the server is clicked in the indicator-applet and performs a Mail Check'''
         for indicator in self.indicators:
             self.indicators[indicator].set_property("draw-attention", "false")
         
+        self.player.set_state(gst.STATE_NULL)
         self.checker.queryInbox()
     
     def update_count(self, count):
@@ -168,6 +165,7 @@ class CheckMail():
             text += "- " + title + "\n"
             
         self.showNotification(_("Incoming message"), text.strip("\n"))
+        self.player.set_state(gst.STATE_PLAYING)
     
     def labelClick(self, indicator, timestamp):
         '''called when a label is clicked in the indicator-applet and opens the corresponding gmail page'''
