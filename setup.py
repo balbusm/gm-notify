@@ -11,7 +11,7 @@ setup(  name='gm-notify',
         scripts=['gm-notify.py', 'gm-notify-config.py'],
         data_files=[('/usr/share/applications', ['data/gm-notify.desktop']),
                     ('/usr/share/applications', ['data/gm-notify-config.desktop']),
-                    ('/usr/share/indicators/messages/applications', ['data/gm-notify.py'])
+                    ('/usr/share/indicators/messages/applications', ['data/gm-notify.py']),
                     ('/usr/share/gm-notify', ['data/checking.gif']),
                     ('/usr/share/icons/hicolor/16x16/apps/', ['data/gm-notify.png']),
                     ('/usr/share/gm-notify', ['gm-config.glade']),
