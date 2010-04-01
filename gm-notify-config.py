@@ -91,7 +91,8 @@ class Window:
         
         # Sound
         self.wTree.get_widget("checkbutton_sound").set_active(self.client.get_bool("/apps/gm-notify/play_sound"))
-        self.wTree.get_widget("fcbutton_sound").set_filename(self.client.get_string("/apps/gm-notify/soundfile"))
+        if self.client.get_string("/apps/gm-notify/soundfile"):
+            self.wTree.get_widget("fcbutton_sound").set_filename(self.client.get_string("/apps/gm-notify/soundfile"))
         self.on_checkbutton_sound_toggled(self.wTree.get_widget("checkbutton_sound"))
         
         # ClickAction
