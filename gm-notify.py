@@ -125,7 +125,7 @@ class CheckMail():
             self.player.set_state(gst.STATE_NULL)
             print "Error: %s - %s" % message.parse_error()
     
-    def serverClick(self, server, timestamp):
+    def serverClick(self, server, timestamp=None):
         '''called when the server is clicked in the indicator-applet and performs a Mail Check'''
         for indicator in self.indicators:
             self.indicators[indicator].set_property("draw-attention", "false")
@@ -167,7 +167,7 @@ class CheckMail():
         self.showNotification(_("Incoming message"), text.strip("\n"))
         if self.player: self.player.set_state(gst.STATE_PLAYING)
     
-    def labelClick(self, indicator, timestamp):
+    def labelClick(self, indicator, timestamp=None):
         '''called when a label is clicked in the indicator-applet and opens the corresponding gmail page'''
         if self.domain:
             url = "https://mail.google.com/a/"+self.domain+"/"
