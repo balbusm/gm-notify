@@ -130,7 +130,7 @@ class CheckMail():
         for indicator in self.indicators:
             self.indicators[indicator].set_property("draw-attention", "false")
         
-        self.player.set_state(gst.STATE_NULL)
+        if self.player: self.player.set_state(gst.STATE_NULL)
         self.checker.queryInbox()
     
     def update_count(self, count):
@@ -165,7 +165,7 @@ class CheckMail():
             text += "- " + title + "\n"
             
         self.showNotification(_("Incoming message"), text.strip("\n"))
-        self.player.set_state(gst.STATE_PLAYING)
+        if self.player: self.player.set_state(gst.STATE_PLAYING)
     
     def labelClick(self, indicator, timestamp):
         '''called when a label is clicked in the indicator-applet and opens the corresponding gmail page'''
