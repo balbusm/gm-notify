@@ -15,9 +15,10 @@ DEPENDENCIES:
 - python-gtk2
 - python-gconf
 - python-twisted-words
+- python-gnomekeyring
 
 install via
-sudo apt-get install python-indicate python-notify python-gst0.10 python-gtk2 python-gconf python-twisted-words
+sudo apt-get install python-indicate python-notify python-gst0.10 python-gtk2 python-gconf python-twisted-words python-gnomekeyring
 
 ------------------------------------
 
