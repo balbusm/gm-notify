@@ -1,3 +1,11 @@
+gm-notify (0.10-1~ppa1) lucid; urgency=low
+
+  * New release 0.10 
+  * debian/rules
+    - install a pointer to the desktop file for the indicator
+
+ -- Ken VanDine <ken.vandine@canonical.com>  Wed, 21 Apr 2010 10:10:07 -0400
+
 gm-notify (0.8+r32-1~ppa0) jaunty; urgency=low
 
   * Latest revision
