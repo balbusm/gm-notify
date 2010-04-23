@@ -23,6 +23,7 @@ import sys
 import os
 import gettext
 import subprocess
+import shutil
 
 import pynotify
 import pygtk
@@ -104,6 +105,16 @@ class Window:
         # Mailboxes
         mailboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
         self.wTree.get_widget("entry_labels").set_text(", ".join(mailboxes))
+
+        # Autorun
+        if os.path.exists("data/gm-notify-autostart.desktop"):
+            self.gm_notify_autostart_file = "data/gm-notify-autostart.desktop"
+        elif os.path.exists("/usr/local/share/gm-notify/gm-notify-autostart.desktop"):
+            self.gm_notify_autostart_file = "/usr/local/share/gm-notify/gm-notify-autostart.desktop"
+        elif os.path.exists("/usr/share/gm-notify/gm-notify-autostart.desktop"):
+            self.gm_notify_autostart_file = "/usr/share/gm-notify/gm-notify-autostart.desktop"
+        self.autostart_file = os.path.expanduser("~/.config/autostart/gm-notify.desktop")
+        self.wTree.get_widget("checkbutton_autostart").set_active(os.path.exists(self.autostart_file))
         
         signals = { "gtk_main_quit": self.terminate,
                     "on_button_apply_clicked": self.save,
@@ -137,6 +148,26 @@ class Window:
             self.client.set_string("/apps/gm-notify/soundfile", str(self.wTree.get_widget("fcbutton_sound").get_filename()))
         else:
             self.client.set_bool("/apps/gm-notify/play_sound", False)
+
+        # Autorun
+        if self.wTree.get_widget("checkbutton_autostart").get_active():
+            if not os.path.exists(self.autostart_file):
+                try:
+                    os.makedirs(os.path.expanduser("~/.config/autostart"))
+                except OSError:
+                    pass
+
+                try:
+                    shutil.copyfile(self.gm_notify_autostart_file, self.autostart_file)
+                    os.chmod(self.autostart_file, 0700)
+                except IOError:
+                    print "Warning: cannot write to path", self.autostart_file
+        else:
+            if os.path.exists(self.autostart_file):
+                try:
+                    os.unlink(self.autostart_file)
+                except:
+                    print "Warning: cannot delete", self.autostart_file
 
         # Start gm-notify itself
         subprocess.Popen(get_executable_path("gm-notify.py"))

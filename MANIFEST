@@ -10,6 +10,7 @@ data/checking.gif
 data/gm-notify-config.desktop
 data/gm-notify.desktop
 data/gm-notify.schemas
+data/gm-notify-autostart.desktop
 po/gm-notify.pot
 po/ca/gm-notify.mo
 po/ca/gm-notify.po
