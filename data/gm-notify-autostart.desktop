@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Google Mail
+GenericName=Google Mail
+Comment=An E-Mail Notifier for Google Mail
+Exec=/usr/bin/gm-notify.py
+Terminal=false
+Type=Application
+Icon=gm-notify
+Categories=Network;Email;
+StartupNotify=false
