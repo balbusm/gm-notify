@@ -147,8 +147,8 @@ class CheckMail():
         text = ""
         # aggregate the titles of the messages... cut the string if longer than 30 chars
         for mail in mails:
-            self.indicators['inbox'].set_property("draw-attention", "true")
             for label in mail['labels']:
+                if label == u"^i": label = "inbox"
                 if label in self.indicators:
                     self.indicators[label].set_property("draw-attention", "true")
             if "sender_name" in mail: text += mail['sender_name'] + ":\n"
