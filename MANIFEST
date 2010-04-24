@@ -1,12 +1,12 @@
 README
 gm-notify-config.py
 gm-notify.py
-gmxdgsoundlib.py
 keyring.py
 setup.py
 gm-config.glade
-gmimap.py
+gtalk.py
 data/checking.gif
+data/gm-notify
 data/gm-notify-config.desktop
 data/gm-notify.desktop
 data/gm-notify.schemas
