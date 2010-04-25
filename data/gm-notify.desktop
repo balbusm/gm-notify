@@ -7,3 +7,4 @@ Type=Application
 Exec=gm-notify.py
 StartupNotify=False
 Terminal=false
+NotShowIn=GNOME;
