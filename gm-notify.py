@@ -109,6 +109,10 @@ class CheckMail():
         self.server.connect("server-display", self.serverClick)
         self.indicators = {}
         
+        # Read /apps/gm-notify/ignore_inbox value. If true you will only receive
+        # notifications about configured labels
+        self.ignore_inbox = self.client.get_bool("/apps/gm-notify/ignore_inbox")
+        
         # Retrieve the mailbox we're gonna check
         self.mailboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
         self.mailboxes.insert(0, "inbox")
@@ -139,7 +143,7 @@ class CheckMail():
             if int(i.get_property("count")) > int(mailbox[1]):
                 i.set_property("draw-attention", "false")
             i.set_property("count", unicode(mailbox[1]))
-            if int(mailbox[1]) or mailbox[0] == "inbox": i.show()
+            if int(mailbox[1]) or (mailbox[0] == "inbox" and not self.ignore_inbox): i.show()
             else: i.hide()
     
     def new_mail(self, mails):
@@ -147,10 +151,14 @@ class CheckMail():
         text = ""
         # aggregate the titles of the messages... cut the string if longer than 30 chars
         for mail in mails:
+            got_label = False
             for label in mail['labels']:
                 if label == u"^i": label = "inbox"
                 if label in self.indicators:
+                    if not label == "inbox": got_label = True
                     self.indicators[label].set_property("draw-attention", "true")
+            if not got_label and self.ignore_inbox: continue
+            
             if "sender_name" in mail: text += mail['sender_name'] + ":\n"
             elif "sender_address" in mail: text += mail['sender_address'] + ":\n"
             
@@ -164,8 +172,9 @@ class CheckMail():
                 title = _("(no content)")
             text += "- " + title + "\n"
             
-        self.showNotification(_("Incoming message"), text.strip("\n"))
-        if self.player: self.player.set_state(gst.STATE_PLAYING)
+        if text:
+            self.showNotification(_("Incoming message"), text.strip("\n"))
+            if self.player: self.player.set_state(gst.STATE_PLAYING)
     
     def labelClick(self, indicator, timestamp=None):
         '''called when a label is clicked in the indicator-applet and opens the corresponding gmail page'''
@@ -216,6 +225,6 @@ class CheckMail():
             new_indicator.label = mailbox
             new_indicator.connect("user-display", self.labelClick)
             self.indicators[mailbox] = new_indicator
-        self.indicators["inbox"].show()
+        if not self.ignore_inbox: self.indicators["inbox"].show()
 
 cm = CheckMail()
