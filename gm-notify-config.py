@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# gm-notify-config.py v0.10
+# gm-notify-config.py v0.10.1
 # GMail Notifier Configuration Utility
 #
 # Copyright (c) 2009-2010, Alexander Hungenberg <alexander.hungenberg@gmail.com>

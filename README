@@ -1,4 +1,4 @@
-gm-notify 0.10 README
+gm-notify 0.10.1 README
 ------------------------------------
 
 QUICK INSTALLATION:
@@ -23,6 +23,12 @@ sudo apt-get install python-indicate python-notify python-gst0.10 python-gtk2 py
 ------------------------------------
 
 RELEASE NOTES:
+
+v0.10.1:
+- Configurable autorun
+- Usage of Ubuntu's default mail icon
+- Fix of a displaying bug
+- Ignoring the inbox is possible (see http://bleedingpaper.com/gm-notify)
 
 v0.10:
 - Written for Lucid 10.04 (no warranty that older versions will be supported)
@@ -55,9 +61,9 @@ keyring.py
 was taken from http://www.rittau.org/blog/20070726-01 and written
 by Sebastian Rittau <srittau@jroger.in-berlin.de>
 
-gm-notify.png
-was taken from http://gnome-look.org/content/show.php/Gmail+Icon+(M+envelope)?content=105022 and designed
-by Derma Amred
+Autorun concept:
+Concept and code taken from cgmail
+implemented by Sassur <sassur@gmail.com>
 
 all the rest is written 2009-2010 by Alexander Hungenberg
 
