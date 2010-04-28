@@ -11,6 +11,16 @@
             </locale>
         </schema>
         <schema>
+            <key>/schemas/apps/gm-notify/ignore_inbox</key>
+            <applyto>/apps/gm-notify/ignore_inbox</applyto>
+            <owner>gm-notify</owner>
+            <type>bool</type>
+            <default>False</default>
+            <locale name="C">
+                <short>If true, there won't be notifications regarding just your inbox.</short>
+            </locale>
+        </schema>
+        <schema>
             <key>/schemas/apps/gm-notify/soundfile</key>
             <applyto>/apps/gm-notify/soundfile</applyto>
             <owner>gm-notify</owner>
