@@ -139,11 +139,14 @@ class CheckMail():
     
     def update_count(self, count):
         for mailbox in count.iteritems():
+            if mailbox[0] == "inbox" and self.ignore_inbox:
+                continue
+            
             i = self.indicators[mailbox[0]]
             if int(i.get_property("count")) > int(mailbox[1]):
                 i.set_property("draw-attention", "false")
             i.set_property("count", unicode(mailbox[1]))
-            if int(mailbox[1]) or (mailbox[0] == "inbox" and not self.ignore_inbox): i.show()
+            if int(mailbox[1]) or mailbox[0] == "inbox": i.show()
             else: i.hide()
     
     def new_mail(self, mails):
@@ -155,8 +158,9 @@ class CheckMail():
             for label in mail['labels']:
                 if label == u"^i": label = "inbox"
                 if label in self.indicators:
-                    if not label == "inbox": got_label = True
-                    self.indicators[label].set_property("draw-attention", "true")
+                    if not label == "inbox" or not self.ignore_inbox:
+                        got_label = True
+                        self.indicators[label].set_property("draw-attention", "true")
             if not got_label and self.ignore_inbox: continue
             
             if "sender_name" in mail: text += mail['sender_name'] + ":\n"
@@ -225,6 +229,7 @@ class CheckMail():
             new_indicator.label = mailbox
             new_indicator.connect("user-display", self.labelClick)
             self.indicators[mailbox] = new_indicator
-        if not self.ignore_inbox: self.indicators["inbox"].show()
+        self.indicators["inbox"].show()
+        if self.ignore_inbox: self.indicators["inbox"].hide()
 
 cm = CheckMail()
