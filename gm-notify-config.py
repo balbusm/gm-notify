@@ -109,10 +109,10 @@ class Window:
         # Autorun
         if os.path.exists("data/gm-notify.desktop"):
             self.gm_notify_autostart_file = "data/gm-notify.desktop"
-        elif os.path.exists("/usr/local/share/applications/gm-notify.desktop"):
-            self.gm_notify_autostart_file = "/usr/local/share/applications/gm-notify.desktop"
-        elif os.path.exists("/usr/share/applications/gm-notify.desktop"):
-            self.gm_notify_autostart_file = "/usr/share/applications/gm-notify.desktop"
+        elif os.path.exists("/usr/local/share/gm-notify/gm-notify.desktop"):
+            self.gm_notify_autostart_file = "/usr/local/share/gm-notify/gm-notify.desktop"
+        elif os.path.exists("/usr/share/gm-notify/gm-notify.desktop"):
+            self.gm_notify_autostart_file = "/usr/share/gm-notify/gm-notify.desktop"
         self.autostart_file = os.path.expanduser("~/.config/autostart/gm-notify.desktop")
         self.wTree.get_widget("checkbutton_autostart").set_active(os.path.exists(self.autostart_file))
         
