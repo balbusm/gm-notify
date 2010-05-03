@@ -66,6 +66,7 @@ class CheckMail():
         
         # Initiate pynotify and Gnome Keyring
         if not pynotify.init(_("GMail Notifier")):
+            subprocess.call("echo '1' > /home/defreng/gm.debug", shell=True)
             sys.exit(-1)
         
         keys = keyring.Keyring("GMail", "mail.google.com", "http")
@@ -105,7 +106,7 @@ class CheckMail():
         # Register with Indicator-Applet
         self.server = indicate.indicate_server_ref_default()
         self.server.set_type("message.mail")
-        self.server.set_desktop_file("/usr/share/applications/gm-notify.desktop")
+        self.server.set_desktop_file("/usr/share/gm-notify/gm-notify.desktop")
         self.server.connect("server-display", self.serverClick)
         self.indicators = {}
         
