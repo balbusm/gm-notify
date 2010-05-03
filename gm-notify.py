@@ -66,7 +66,6 @@ class CheckMail():
         
         # Initiate pynotify and Gnome Keyring
         if not pynotify.init(_("GMail Notifier")):
-            subprocess.call("echo '1' > /home/defreng/gm.debug", shell=True)
             sys.exit(-1)
         
         keys = keyring.Keyring("GMail", "mail.google.com", "http")
