@@ -104,6 +104,7 @@ class Window:
         
         # Mailboxes
         mailboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
+        self.wTree.get_widget("checkbutton_inbox").set_active(self.client.get_bool("/apps/gm-notify/ignore_inbox"))
         self.wTree.get_widget("entry_labels").set_text(", ".join(mailboxes))
 
         # Autorun
@@ -138,6 +139,7 @@ class Window:
         for label in self.wTree.get_widget("entry_labels").get_text().split(","):
             mailboxes.append(label.strip())
         self.client.set_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING, mailboxes)
+        self.client.set_bool("/apps/gm-notify/ignore_inbox", self.wTree.get_widget("checkbutton_inbox").get_active())
         
         # ClickAction
         self.client.set_bool("/apps/gm-notify/openclient", self.wTree.get_widget("radiobutton_openclient").get_active())
