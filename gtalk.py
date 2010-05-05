@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# gtalk.py v0.10.1
+# gtalk.py v0.10.2
 # Google Talk mail notification client library
 #
 # Copyright (c) 2009-2010, Alexander Hungenberg <alexander.hungenberg@gmail.com>

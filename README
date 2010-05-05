@@ -1,4 +1,4 @@
-gm-notify 0.10.1 README
+gm-notify 0.10.2 README
 ------------------------------------
 
 QUICK INSTALLATION:
@@ -23,6 +23,11 @@ sudo apt-get install python-indicate python-notify python-gst0.10 python-gtk2 py
 ------------------------------------
 
 RELEASE NOTES:
+
+v0.10.2:
+- Added Checkbox to ignore the inbox
+- fixed autorun
+- fixed some other small bugs
 
 v0.10.1:
 - Configurable autorun
@@ -57,7 +62,7 @@ v0.7:
 
 COPYRIGHTS:
 
-keyring.py
+gm_notify_keyring.py
 was taken from http://www.rittau.org/blog/20070726-01 and written
 by Sebastian Rittau <srittau@jroger.in-berlin.de>
 
