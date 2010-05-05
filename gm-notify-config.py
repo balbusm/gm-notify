@@ -35,7 +35,7 @@ gtk2reactor.install()
 from twisted.internet import reactor
 from twisted.words.protocols.jabber import jid
 
-import keyring
+import gm_notify_keyring as keyring
 from gtalk import MailChecker
 
 _ = gettext.translation('gm-notify', fallback=True).ugettext

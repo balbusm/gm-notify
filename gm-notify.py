@@ -37,7 +37,7 @@ from twisted.internet import reactor
 from twisted.words.protocols.jabber import jid
 
 from gtalk import MailChecker
-import keyring
+import gm_notify_keyring as keyring
 
 _ = gettext.translation('gm-notify', fallback=True).ugettext
 
