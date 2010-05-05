@@ -28,7 +28,7 @@
                     <child>
                       <widget class="GtkLabel" id="label_user">
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">Username:</property>
+                        <property name="label" translatable="yes">E-Mail:</property>
                       </widget>
                       <packing>
                         <property name="y_options">GTK_FILL</property>

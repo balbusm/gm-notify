@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# gm-notify.py v0.10.1
+# gm-notify.py v0.10.2
 # a simple and lightweight GMail-Notifier for ubuntu and notify-osd
 #
 # Copyright (c) 2009-2010, Alexander Hungenberg <alexander.hungenberg@gmail.com>
