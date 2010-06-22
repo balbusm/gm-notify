@@ -5,6 +5,6 @@ Name[de]=GMail Notifier Konfiguration
 Icon=evolution
 Type=Application
 Categories=GNOME;GTK;Settings;DesktopSettings;
-Exec=gm-notify-config.py
+Exec=gm-notify-config
 StartupNotify=False
 Terminal=false

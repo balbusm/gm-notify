@@ -4,6 +4,6 @@ Name=Google Mail
 Comment=An E-Mail Notifier for Google Mail
 Icon=applications-email-panel
 Type=Application
-Exec=gm-notify.py
+Exec=gm-notify
 StartupNotify=False
 Terminal=false
