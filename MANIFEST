@@ -1,6 +1,6 @@
 README
-gm-notify-config.py
-gm-notify.py
+gm-notify-config
+gm-notify
 keyring.py
 setup.py
 gm-config.glade
