@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# gm-notify.py v0.10.2
+# gm-notify v0.10.2
 # a simple and lightweight GMail-Notifier for ubuntu and notify-osd
 #
 # Copyright (c) 2009-2010, Alexander Hungenberg <alexander.hungenberg@gmail.com>
@@ -62,7 +62,7 @@ class CheckMail():
         In the end it starts the periodic check timer and a gtk main-loop'''
         
         # Kill running gm-notify processes (UGLY!)
-        subprocess.call("kill `pgrep -f gm-notify.py | grep -v %s`" % os.getpid(), stdout=open("/dev/null", "w"), shell=True)
+        subprocess.call("kill `pgrep -f gm-notify | grep -v %s`" % os.getpid(), stdout=open("/dev/null", "w"), shell=True)
         
         # Initiate pynotify and Gnome Keyring
         if not pynotify.init(_("GMail Notifier")):
@@ -74,7 +74,7 @@ class CheckMail():
         else:
             # Start gm-notify-config if no credentials are found
             try:
-                subprocess.call(get_executable_path("gm-notify-config.py"))
+                subprocess.call(get_executable_path("gm-notify-config"))
             except PathNotFound:
                 print(_("gm-notify-config utility was not found"))
             sys.exit(-1)
