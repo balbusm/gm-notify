@@ -44,7 +44,7 @@ _ = gettext.translation('gm-notify', fallback=True).ugettext
 
 MAILBOXES_NAMES = { "inbox": _("Inbox") }
 
-MAILBOXES_URLS = {  "inbox": _("inbox") }
+MAILBOXES_URLS = {  "inbox": "" }
 
 class PathNotFound(Exception): pass
 
