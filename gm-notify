@@ -198,6 +198,7 @@ class CheckMail():
         # Open mail client
         if self.client.get_bool("/apps/gm-notify/openclient"):
             command = self.client.get_string("/desktop/gnome/url-handlers/mailto/command").split(" ")[0]
+            if command.find("mutt") != -1: command += " -f =%s" % indicator.label
             if self.client.get_bool("/desktop/gnome/url-handlers/mailto/needs_terminal"):
                 termCmd = self.client.get_string("/desktop/gnome/applications/terminal/exec")
                 if termCmd:
