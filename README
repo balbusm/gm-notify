@@ -1,4 +1,4 @@
-gm-notify 0.10.2 README
+gm-notify 0.10.3 README
 ------------------------------------
 
 QUICK INSTALLATION:
@@ -23,6 +23,12 @@ sudo apt-get install python-indicate python-notify python-gst0.10 python-gtk2 py
 ------------------------------------
 
 RELEASE NOTES:
+
+v0.10.3:
+- Fixed CPU Usage Bug occuring on Maverick
+- Included Bulgarian Translation
+- Correct Priority Inbox usage
+- Mutt Label support
 
 v0.10.2:
 - Added Checkbox to ignore the inbox

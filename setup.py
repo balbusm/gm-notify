@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(  name='gm-notify',
-        version='0.10.2',
+        version='0.10.3',
         description='Highly Ubuntu integrated GMail Notifier',
         author='Alexander Hungenberg',
         author_email='alexander.hungenberg@gmail.com',
@@ -16,6 +16,7 @@ setup(  name='gm-notify',
                     ('/usr/share/gm-notify', ['gm-config.glade']),
                     ('/etc/gconf/schemas', ['data/gm-notify.schemas']),
                     ('/usr/share/locale/da/LC_MESSAGES', ['po/da/gm-notify.mo']),
+                    ('/usr/share/locale/bg/LC_MESSAGES', ['po/bg/gm-notify.mo']),
                     ('/usr/share/locale/de/LC_MESSAGES', ['po/de/gm-notify.mo']),
                     ('/usr/share/locale/ca/LC_MESSAGES', ['po/ca/gm-notify.mo']),
                     ('/usr/share/locale/el/LC_MESSAGES', ['po/el/gm-notify.mo']),
