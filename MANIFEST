@@ -11,6 +11,8 @@ data/gm-notify-config.desktop
 data/gm-notify.desktop
 data/gm-notify.schemas
 po/gm-notify.pot
+po/bg/gm-notify.mo
+po/bg/gm-notify.po
 po/ca/gm-notify.mo
 po/ca/gm-notify.po
 po/da/gm-notify.mo

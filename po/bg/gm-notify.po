@@ -1,0 +1,158 @@
+# Bulgarian translation for gm-notify
+# Copyright (c) 2009 Rosetta Contributors and Canonical Ltd 2009
+# This file is distributed under the same license as the gm-notify package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2009.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: gm-notify\n"
+"Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2009-05-10 14:56+0200\n"
+"PO-Revision-Date: 2009-12-29 01:42+0000\n"
+"Last-Translator: B.U.S.T.T.E.R. <Unknown>\n"
+"Language-Team: Bulgarian <bg@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2010-09-18 13:00+0000\n"
+"X-Generator: Launchpad (build Unknown)\n"
+
+#: gm-notify.py:51 gm-notify-config.py:22 gm-config.glade:7
+msgid "GMail Notifier"
+msgstr "GMail Уведомител"
+
+#: gm-notify.py:96 gm-notify-config.py:140
+msgid "No sound selected"
+msgstr "Няма избран звук"
+
+#: gm-notify.py:96 gm-notify-config.py:140
+msgid ""
+"Please select a new-message sound in the audio settings or unselect the "
+"corresponding option."
+msgstr ""
+"Моля, изберете звук за ново съобщение в аудио настройките или откажете "
+"текущия избор."
+
+#: gm-notify.py:162 gm-config.glade:381
+msgid "Inbox"
+msgstr "Входящи"
+
+#: gm-notify.py:163 gm-config.glade:395
+msgid "All Mail"
+msgstr "Цялата поща"
+
+#: gm-notify.py:164 gm-config.glade:408
+msgid "Starred"
+msgstr "Със звезда"
+
+#: gm-notify.py:173
+msgid "(no subject)"
+msgstr "(няма тема)"
+
+#: gm-notify.py:187
+msgid "in"
+msgstr "в"
+
+#: gm-notify.py:189
+msgid "in label"
+msgstr "в етикет"
+
+#: gm-notify.py:192
+msgid "Incoming message"
+msgstr "Входящо съобщение"
+
+#: gm-notify.py:194
+msgid "new messages"
+msgstr "нови съобщения"
+
+#: gm-notify-config.py:112
+msgid "Short checking interval"
+msgstr "Кратък интервал за проверка"
+
+#: gm-notify-config.py:112
+msgid "Increasing (more than 3 minutes) is recommended"
+msgstr "Препоръчително е увеличване (повече от 3 минути)"
+
+#: gm-notify-config.py:195
+msgid "checking..."
+msgstr "проверяване..."
+
+#: gm-notify-config.py:227
+msgid "Valid credentials"
+msgstr "Валидни пълномощия"
+
+#: gm-notify-config.py:242
+msgid "Invalid credentials"
+msgstr "Невалидни пълномощия"
+
+#: gm-config.glade:33
+msgid "Username:"
+msgstr "Потребител:"
+
+#: gm-config.glade:42
+msgid "Password:"
+msgstr "Парола:"
+
+#: gm-config.glade:93
+msgid "Please enter credentials"
+msgstr "Моля, въведете пълномощия"
+
+#: gm-config.glade:128
+msgid "Click on applet opens:"
+msgstr "Кликнете върху аплета:"
+
+#: gm-config.glade:141
+msgid "GMail webinterface"
+msgstr "GMail уеб интерфейс"
+
+#: gm-config.glade:162
+msgid "Current default mail client"
+msgstr "Текущия пощенски клиент по подразбиране"
+
+#: gm-config.glade:189
+msgid "Account"
+msgstr "Акаунт"
+
+#: gm-config.glade:204
+msgid "Play sound when new message arrives"
+msgstr "Възпроизведи звук, когато пристигне ново съобщение"
+
+#: gm-config.glade:219
+msgid "Configure sound"
+msgstr "Избери звук"
+
+#: gm-config.glade:244
+msgid "Message checking interval:"
+msgstr "Интервал за проверяване на съобщенията:"
+
+#: gm-config.glade:263
+msgid "Frequently (2 minutes)"
+msgstr "Често (2 минути)"
+
+#: gm-config.glade:276
+msgid "Sometimes (10 minutes)"
+msgstr "От време на време (10 минути)"
+
+#: gm-config.glade:292
+msgid "Hardly ever (60 minutes)"
+msgstr "Рядко (60 минути)"
+
+#: gm-config.glade:306
+msgid "Custom (minutes)"
+msgstr "По избор (минути)"
+
+#: gm-config.glade:352
+msgid "Enhanced"
+msgstr "Засилено"
+
+#: gm-config.glade:370
+msgid ""
+"Please select the appropiate folders\n"
+"that should be checked"
+msgstr ""
+"Моля, изберете папките, които\n"
+"да бъдат проверявани"
+
+#: gm-config.glade:443 gm-config.glade:462
+msgid "Labels"
+msgstr "Етикети"
