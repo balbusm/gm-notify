@@ -23,6 +23,7 @@ import os
 import sys
 import subprocess
 import gettext
+import webbrowser
 
 import pynotify
 import indicate
@@ -31,8 +32,8 @@ import pygst
 pygst.require("0.10")
 import gst
 import gconf
-from twisted.internet import gtk2reactor
-gtk2reactor.install()
+from twisted.internet import glib2reactor
+glib2reactor.install()
 from twisted.internet import reactor
 from twisted.words.protocols.jabber import jid
 
@@ -206,7 +207,7 @@ class CheckMail():
                 command = termCmd + command
             subprocess.Popen(command, shell=True)
         else:
-            subprocess.call([get_executable_path("xdg-open"), url])
+            webbrowser.open(url)
     
     def showNotification(self, title, message):
         '''takes a title and a message to display the email notification. Returns the
