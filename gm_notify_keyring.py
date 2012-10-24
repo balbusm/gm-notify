@@ -1,43 +1,59 @@
+from __future__ import print_function
+
 __version__ = "$Revision: 14294 $"
 
-import gtk # ensure that the application name is correctly set
-import gnomekeyring as gkey
+from gi.repository import GnomeKeyring, Gtk
 
+def attributes(d):
+  """Converts a dictionary to a GnomeKeyring.Attribute array"""
+  attrs = GnomeKeyring.Attribute.list_new()
+  for key in d:
+    GnomeKeyring.Attribute.list_append_string(attrs, key, str(d[key]))
+  return attrs
+
+def dict_from_attributes(attrs):
+  """Converts item results back into a dictionary"""
+  result = {}
+  for attr in GnomeKeyring.Attribute.list_to_glist(attrs):
+    result[attr.name] = attr.get_string()
+  return result
+
+class KeyringException(Exception):
+  pass
 
 class Keyring(object):
     def __init__(self, name, server, protocol):
         self._name = name
         self._server = server
         self._protocol = protocol
-        self._keyring = gkey.get_default_keyring_sync()
+        result, self._keyring = GnomeKeyring.get_default_keyring_sync()
     
     def has_credentials(self):
-        try:
-            attrs = {"server": self._server, "protocol": self._protocol}
-            items = gkey.find_items_sync(gkey.ITEM_NETWORK_PASSWORD, attrs)
-            return len(items) > 0
-        except (gkey.DeniedError, gkey.NoMatchError):
+        attrs = attributes({"server": self._server, "protocol": self._protocol})
+        result, items = GnomeKeyring.find_items_sync(GnomeKeyring.ItemType.NETWORK_PASSWORD, attrs)
+        if result in (GnomeKeyring.Result.NO_MATCH, GnomeKeyring.Result.DENIED):
             return False
+        return len(items) > 0
 
     def get_credentials(self):
-        attrs = {"server": self._server, "protocol": self._protocol}
-        items = gkey.find_items_sync(gkey.ITEM_NETWORK_PASSWORD, attrs)
-        return (items[0].attributes["user"], items[0].secret)
+        attrs = attributes({"server": self._server, "protocol": self._protocol})
+        result, items = GnomeKeyring.find_items_sync(GnomeKeyring.ItemType.NETWORK_PASSWORD, attrs)
+        if len(items) == 0:
+            raise KeyringException("Credentials not found")
+        d = dict_from_attributes(items[0].attributes)
+        return (d["user"], items[0].secret)
     
     def delete_credentials(self):
-        attrs = {"server": self._server, "protocol": self._protocol}
-        try:
-            items = gkey.find_items_sync(gkey.ITEM_NETWORK_PASSWORD, attrs)
-            for item in items:
-                gkey.item_delete_sync(None, item.item_id)
-        except (gkey.DeniedError, gkey.NoMatchError):
-            pass
+        attrs = attributes({"server": self._server, "protocol": self._protocol})
+        result, items = GnomeKeyring.find_items_sync(GnomeKeyring.ItemType.NETWORK_PASSWORD, attrs)
+        for item in items:
+            GnomeKeyring.item_delete_sync(self._keyring, item.item_id)
     
-    def set_credentials(self, (user, pw)):
-        attrs = {
+    def set_credentials(self, user, pw):
+        attrs = attributes({
                 "user": user,
                 "server": self._server,
                 "protocol": self._protocol,
-            }
-        gkey.item_create_sync(gkey.get_default_keyring_sync(),
-                gkey.ITEM_NETWORK_PASSWORD, self._name, attrs, pw, True)
+            })
+        GnomeKeyring.item_create_sync(self._keyring,
+                GnomeKeyring.ItemType.NETWORK_PASSWORD, self._name, attrs, pw, True)
