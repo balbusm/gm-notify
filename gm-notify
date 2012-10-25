@@ -27,17 +27,8 @@ import subprocess
 import gettext
 import webbrowser
 
-from gi.repository import Notify, MessagingMenu, GObject, Gio, Gst
+from gi.repository import Gio, GLib, MessagingMenu, Notify
 
-##import pynotify
-##import indicate
-##import gobject
-##import pygst
-##pygst.require("0.10")
-##import gst
-##import gconf
-##from twisted.internet import glib2reactor
-##glib2reactor.install()
 from twisted.internet import gireactor
 gireactor.install()
 from twisted.internet import reactor
@@ -63,6 +54,26 @@ def get_executable_path(name):
     if os.path.exists(path) and os.access(path, os.X_OK): return path
     raise PathNotFound("%s not found" % name)
 
+def play_sound(name):
+    '''Spawns a canberra-gtk-play process to play the sound'''
+    if name is None:
+        return
+    player_path = "/usr/bin/canberra-gtk-play"
+    # Not installed?
+    if not os.path.exists(player_path):
+        return
+    command = [player_path]
+    # File exists, so use the file flag
+    if os.path.exists(name):
+        command.extend(["-f", name])
+    # Assume it is a sound id
+    else:
+        command.extend(["-i", name])
+    result = GLib.spawn_async(command)
+    # Does nothing but the documentation says to do it anyway
+    if len(result) > 0:
+        GLib.spawn_close_pid(result[0])
+
 class CheckMail(Gio.Application):
     def __init__(self):
         '''initiates DBUS-Messaging interface, creates the MailChecker and registers with indicator-applet.
@@ -71,9 +82,13 @@ class CheckMail(Gio.Application):
             flags=Gio.ApplicationFlags.FLAGS_NONE)
 
         self._has_activated = False
-        self.connect("activate", self._activated)
+        self.connect("activate", self.on_activate)
         
-    def _activated(self, app):
+    def on_activate(self, app):
+        '''When first receiving the activate signal, initialize the primary
+        instance. On subsequent activate signals, we are being activated from a
+        secondary instance, so treat it as if our name was clicked in the
+        messaging menu.'''
         if self._has_activated:
             print("Already activated")
             self.serverClick()
@@ -81,6 +96,7 @@ class CheckMail(Gio.Application):
 
         self._has_activated = True
 
+        # Initialize the desktop notifications
         if not Notify.init(_("GMail Notifier")):
             sys.exit(-1)
 
@@ -107,39 +123,33 @@ class CheckMail(Gio.Application):
         else:
             self.domain = self.jid.host
         
-        ## TODO: enable gsettings
-        # init gconf to read config values
-        ##self.client = gconf.client_get_default()
+        self.client = Gio.Settings("net.launchpad.gm-notify")
         
-        ## TODO: enable sounds
-        # init sound
-##        soundfile = self.client.get_string("/apps/gm-notify/soundfile")
-##        if self.client.get_bool("/apps/gm-notify/play_sound") and soundfile:
-##            self.player = gst.element_factory_make("playbin", "player")
-##            self.player.set_property("video-sink", gst.element_factory_make("fakesink", "fakesink"))
-##            self.player.set_property("uri", "file://" + soundfile)
-##            bus = self.player.get_bus()
-##            bus.add_signal_watch()
-##            bus.connect("message", self.gst_message)
-##        else:
-##            self.player = None
-##        
+        # Set up the sound file
+        self._soundfile = self.client.get_string("soundfile")
+        print("Soundfile:", self._soundfile)
+        if self._soundfile == '':
+            self._soundfile = "message-new-instant"
+        if not self.client.get_boolean("play-sound"):
+            self._soundfile = None
+        
         # Messaging Menu integration
         self._m_menu = MessagingMenu.App.new("gm-notify.desktop")
         self._m_menu.register()
+
+        # TODO: Remove before release, just helpful in testing
         self._m_menu.append_source("quit", None, "Quit")
         self._m_menu.connect("activate-source::quit", lambda *args: reactor.stop())
         
-        ## TODO: gsettings again
-        # Read /apps/gm-notify/ignore_inbox value. If true you will only receive
-        # notifications about configured labels
-        ##self.ignore_inbox = self.client.get_bool("/apps/gm-notify/ignore_inbox")
-        self.ignore_inbox = False
+        # Read ignore-inbox value. If true you will only receive notifications
+        # about configured labels
+        self.ignore_inbox = self.client.get_boolean("ignore-inbox")
+        print("Ignore Inbox:", self.ignore_inbox)
         
         # Retrieve the mailbox we're gonna check
-        ##self.mailboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
-        self.mailboxes = []
+        self.mailboxes = self.client.get_strv("mailboxes")
         self.mailboxes.insert(0, "inbox")
+        print("Mailboxes:", self.mailboxes)
         ##self.addMailboxIndicators()
         self.checker = MailChecker(self.jid, self.creds[1], self.mailboxes[1:], self.new_mail, self.update_count)
         self.checker.connect()
@@ -147,20 +157,11 @@ class CheckMail(Gio.Application):
         #self.hold()
         print("after run")
     
-      ## TODO: port sounds
-##    def gst_message(self, bus, message):
-##        if message.type == gst.MESSAGE_EOS:
-##            self.player.set_state(gst.STATE_NULL)
-##        elif message.type == gst.MESSAGE_ERROR:
-##            self.player.set_state(gst.STATE_NULL)
-##            print "Error: %s - %s" % message.parse_error()
-##    
     def serverClick(self):
         '''called when the server is clicked in the indicator-applet and performs a Mail Check'''
         #for indicator in self.indicators:
         #    self.indicators[indicator].set_property("draw-attention", "false")
         
-        #if self.player: self.player.set_state(gst.STATE_NULL)
         self.checker.queryInbox()
 
     def has_source(self, label):
@@ -220,8 +221,7 @@ class CheckMail(Gio.Application):
             
         if text:
             self.showNotification(_("Incoming message"), text.strip("\n"))
-            ## TODO: enable sounds
-            ##if self.player: self.player.set_state(gst.STATE_PLAYING)
+            play_sound(self._soundfile)
     
     def labelClick(self, indicator, timestamp=None):
         '''called when a label is clicked in the indicator-applet and opens the corresponding gmail page'''
