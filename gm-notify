@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 # gm-notify v0.10.3
@@ -19,21 +19,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+from __future__ import print_function
+
 import os
 import sys
 import subprocess
 import gettext
 import webbrowser
 
-import pynotify
-import indicate
-import gobject
-import pygst
-pygst.require("0.10")
-import gst
-import gconf
-from twisted.internet import glib2reactor
-glib2reactor.install()
+from gi.repository import Notify, MessagingMenu, GObject, Gio, Gst
+
+##import pynotify
+##import indicate
+##import gobject
+##import pygst
+##pygst.require("0.10")
+##import gst
+##import gconf
+##from twisted.internet import glib2reactor
+##glib2reactor.install()
+from twisted.internet import gireactor
+gireactor.install()
 from twisted.internet import reactor
 from twisted.words.protocols.jabber import jid
 
@@ -57,29 +63,42 @@ def get_executable_path(name):
     if os.path.exists(path) and os.access(path, os.X_OK): return path
     raise PathNotFound("%s not found" % name)
 
-class CheckMail():
+class CheckMail(Gio.Application):
     def __init__(self):
         '''initiates DBUS-Messaging interface, creates the MailChecker and registers with indicator-applet.
         In the end it starts the periodic check timer and a gtk main-loop'''
+        super(CheckMail, self).__init__(application_id="net.launchpad.gm-notify",
+            flags=Gio.ApplicationFlags.FLAGS_NONE)
+
+        self._has_activated = False
+        self.connect("activate", self._activated)
         
-        # Kill running gm-notify processes (UGLY!)
-        subprocess.call("kill `pgrep -f gm-notify | grep -v %s`" % os.getpid(), stdout=open("/dev/null", "w"), shell=True)
-        
-        # Initiate pynotify and Gnome Keyring
-        if not pynotify.init(_("GMail Notifier")):
+    def _activated(self, app):
+        if self._has_activated:
+            print("Already activated")
+            self.serverClick()
+            return
+
+        self._has_activated = True
+
+        if not Notify.init(_("GMail Notifier")):
             sys.exit(-1)
-        
+
         keys = keyring.Keyring("GMail", "mail.google.com", "http")
         if keys.has_credentials():
             self.creds = keys.get_credentials()
+        ## TODO: Port gm-notify-config
         else:
-            # Start gm-notify-config if no credentials are found
-            try:
-                subprocess.call(get_executable_path("gm-notify-config"))
-            except PathNotFound:
-                print(_("gm-notify-config utility was not found"))
-            sys.exit(-1)
-        
+            print("Failed to get credentials")
+            sys.exit(1)
+##        else:
+##            # Start gm-notify-config if no credentials are found
+##            try:
+##                subprocess.call(get_executable_path("gm-notify-config"))
+##            except PathNotFound:
+##                print(_("gm-notify-config utility was not found"))
+##            sys.exit(-1)
+##        
         # check if we use Google Apps to start the correct webinterface
         gmail_domains = ['gmail.com','googlemail.com']
         self.jid = jid.JID(self.creds[0])
@@ -88,67 +107,89 @@ class CheckMail():
         else:
             self.domain = self.jid.host
         
+        ## TODO: enable gsettings
         # init gconf to read config values
-        self.client = gconf.client_get_default()
+        ##self.client = gconf.client_get_default()
         
+        ## TODO: enable sounds
         # init sound
-        soundfile = self.client.get_string("/apps/gm-notify/soundfile")
-        if self.client.get_bool("/apps/gm-notify/play_sound") and soundfile:
-            self.player = gst.element_factory_make("playbin", "player")
-            self.player.set_property("video-sink", gst.element_factory_make("fakesink", "fakesink"))
-            self.player.set_property("uri", "file://" + soundfile)
-            bus = self.player.get_bus()
-            bus.add_signal_watch()
-            bus.connect("message", self.gst_message)
-        else:
-            self.player = None
+##        soundfile = self.client.get_string("/apps/gm-notify/soundfile")
+##        if self.client.get_bool("/apps/gm-notify/play_sound") and soundfile:
+##            self.player = gst.element_factory_make("playbin", "player")
+##            self.player.set_property("video-sink", gst.element_factory_make("fakesink", "fakesink"))
+##            self.player.set_property("uri", "file://" + soundfile)
+##            bus = self.player.get_bus()
+##            bus.add_signal_watch()
+##            bus.connect("message", self.gst_message)
+##        else:
+##            self.player = None
+##        
+        # Messaging Menu integration
+        self._m_menu = MessagingMenu.App.new("gm-notify.desktop")
+        self._m_menu.register()
+        self._m_menu.append_source("quit", None, "Quit")
+        self._m_menu.connect("activate-source::quit", lambda *args: reactor.stop())
         
-        # Register with Indicator-Applet
-        self.server = indicate.indicate_server_ref_default()
-        self.server.set_type("message.mail")
-        self.server.set_desktop_file("/usr/share/gm-notify/gm-notify.desktop")
-        self.server.connect("server-display", self.serverClick)
-        self.indicators = {}
-        
+        ## TODO: gsettings again
         # Read /apps/gm-notify/ignore_inbox value. If true you will only receive
         # notifications about configured labels
-        self.ignore_inbox = self.client.get_bool("/apps/gm-notify/ignore_inbox")
+        ##self.ignore_inbox = self.client.get_bool("/apps/gm-notify/ignore_inbox")
+        self.ignore_inbox = False
         
         # Retrieve the mailbox we're gonna check
-        self.mailboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
+        ##self.mailboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
+        self.mailboxes = []
         self.mailboxes.insert(0, "inbox")
-        self.addMailboxIndicators()
+        ##self.addMailboxIndicators()
         self.checker = MailChecker(self.jid, self.creds[1], self.mailboxes[1:], self.new_mail, self.update_count)
         self.checker.connect()
         
-        reactor.run()
+        #self.hold()
+        print("after run")
     
-    def gst_message(self, bus, message):
-        if message.type == gst.MESSAGE_EOS:
-            self.player.set_state(gst.STATE_NULL)
-        elif message.type == gst.MESSAGE_ERROR:
-            self.player.set_state(gst.STATE_NULL)
-            print "Error: %s - %s" % message.parse_error()
-    
-    def serverClick(self, server, timestamp=None):
+      ## TODO: port sounds
+##    def gst_message(self, bus, message):
+##        if message.type == gst.MESSAGE_EOS:
+##            self.player.set_state(gst.STATE_NULL)
+##        elif message.type == gst.MESSAGE_ERROR:
+##            self.player.set_state(gst.STATE_NULL)
+##            print "Error: %s - %s" % message.parse_error()
+##    
+    def serverClick(self):
         '''called when the server is clicked in the indicator-applet and performs a Mail Check'''
-        for indicator in self.indicators:
-            self.indicators[indicator].set_property("draw-attention", "false")
+        #for indicator in self.indicators:
+        #    self.indicators[indicator].set_property("draw-attention", "false")
         
-        if self.player: self.player.set_state(gst.STATE_NULL)
+        #if self.player: self.player.set_state(gst.STATE_NULL)
         self.checker.queryInbox()
+
+    def has_source(self, label):
+        '''Returns true if we have this label, or if we don't and it is in our
+        mailboxes list, create it'''
+        if label in self.mailboxes:
+            if not self._m_menu.has_source(label):
+                if label in MAILBOXES_NAMES:
+                    name = MAILBOXES_NAMES[label]
+                else:
+                    name = label
+                self._m_menu.append_source(label, None, name)
+                return True
+        else:
+            return False
     
     def update_count(self, count):
         for mailbox in count.iteritems():
             if mailbox[0] == "inbox" and self.ignore_inbox:
                 continue
             
-            i = self.indicators[mailbox[0]]
-            if int(i.get_property("count")) > int(mailbox[1]):
-                i.set_property("draw-attention", "false")
-            i.set_property("count", unicode(mailbox[1]))
-            if int(mailbox[1]) or mailbox[0] == "inbox": i.show()
-            else: i.hide()
+            if self.has_source(mailbox[0]):
+                self._m_menu.set_source_count(mailbox[0], int(mailbox[1]))
+##            i = self.indicators[mailbox[0]]
+##            if int(i.get_property("count")) > int(mailbox[1]):
+##                i.set_property("draw-attention", "false")
+##            i.set_property("count", unicode(mailbox[1]))
+##            if int(mailbox[1]) or mailbox[0] == "inbox": i.show()
+##            else: i.hide()
     
     def new_mail(self, mails):
         '''Takes mailbox name and titles of mails, to display notification and add indicators'''
@@ -158,10 +199,10 @@ class CheckMail():
             got_label = False
             for label in mail['labels']:
                 if label == u"^i": label = "inbox"
-                if label in self.indicators:
+                if self.has_source(label):
                     if not label == "inbox" or not self.ignore_inbox:
                         got_label = True
-                        self.indicators[label].set_property("draw-attention", "true")
+                        self._m_menu.draw_attention(label)
             if not got_label and self.ignore_inbox: continue
             
             if "sender_name" in mail: text += mail['sender_name'] + ":\n"
@@ -179,7 +220,8 @@ class CheckMail():
             
         if text:
             self.showNotification(_("Incoming message"), text.strip("\n"))
-            if self.player: self.player.set_state(gst.STATE_PLAYING)
+            ## TODO: enable sounds
+            ##if self.player: self.player.set_state(gst.STATE_PLAYING)
     
     def labelClick(self, indicator, timestamp=None):
         '''called when a label is clicked in the indicator-applet and opens the corresponding gmail page'''
@@ -214,7 +256,7 @@ class CheckMail():
         '''takes a title and a message to display the email notification. Returns the
         created notification object'''
         
-        n = pynotify.Notification(title, message, "notification-message-email")
+        n = Notify.Notification.new(title, message, "notification-message-email")
         n.show()
         
         return n
@@ -235,3 +277,5 @@ class CheckMail():
         if self.ignore_inbox: self.indicators["inbox"].hide()
 
 cm = CheckMail()
+reactor.registerGApplication(cm)
+reactor.run()
