@@ -10,7 +10,7 @@
       <summary>If true, there won't be notifications regarding just your inbox.</summary>
     </key>
     <key type="s" name="soundfile">
-      <default></default>
+      <default>''</default>
       <summary>Path to the soundfile which should be played when a new mail arrives</summary>
     </key>
     <key type="as" name="mailboxes">
