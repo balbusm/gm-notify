@@ -115,18 +115,15 @@ class CheckMail(Gio.Application):
         keys = keyring.Keyring("GMail", "mail.google.com", "http")
         if keys.has_credentials():
             self.creds = keys.get_credentials()
-        ## TODO: Port gm-notify-config
         else:
             print("Failed to get credentials")
-            sys.exit(1)
-##        else:
-##            # Start gm-notify-config if no credentials are found
-##            try:
-##                subprocess.call(get_executable_path("gm-notify-config"))
-##            except PathNotFound:
-##                print(_("gm-notify-config utility was not found"))
-##            sys.exit(-1)
-##        
+            # Start gm-notify-config if no credentials are found
+            try:
+                subprocess.call(get_executable_path("gm-notify-config"))
+            except PathNotFound:
+                print(_("gm-notify-config utility was not found"))
+            sys.exit(-1)
+        
         # check if we use Google Apps to start the correct webinterface
         gmail_domains = ['gmail.com','googlemail.com']
         self.jid = jid.JID(self.creds[0])
@@ -156,8 +153,6 @@ class CheckMail(Gio.Application):
         # Retrieve the mailbox we're gonna check
         self.mailboxes = self.client.get_strv("mailboxes")
         self.mailboxes.insert(0, "inbox")
-        for label in self.mailboxes:
-            self.has_source(label)
         self.checker = MailChecker(self.jid, self.creds[1], self.mailboxes[1:], self.new_mail, self.update_count)
         self.checker.connect()
     
