@@ -1,8 +1,8 @@
 [Desktop Entry]
 Encoding=UTF-8
-Name=Google Mail
+Name=GMail Notifier
 Comment=An E-Mail Notifier for Google Mail
-Icon=applications-email-panel
+Icon=evolution
 Type=Application
 Exec=gm-notify
 StartupNotify=False
