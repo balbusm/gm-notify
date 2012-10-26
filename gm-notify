@@ -91,7 +91,7 @@ class CheckMail(Gio.Application):
     def on_remote_quit(self, action, args):
         '''Stops the application when the "remote-quit" action is activated'''
         reactor.stop()
-        
+
     def on_activate(self, app):
         '''When first receiving the activate signal, initialize the primary
         instance. On subsequent activate signals, we are being activated from a
@@ -140,7 +140,7 @@ class CheckMail(Gio.Application):
             self._soundfile = "message-new-instant"
         if not self.client.get_boolean("play-sound"):
             self._soundfile = None
-        
+
         # Messaging Menu integration
         self._m_menu = MessagingMenu.App.new("gm-notify.desktop")
         self._m_menu.register()

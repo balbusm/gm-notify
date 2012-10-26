@@ -139,7 +139,7 @@ class Window(Gtk.Application):
         '''saves the entered data and closes the app'''
         # Credentials
         self.keys.delete_credentials()
-        self.keys.set_credentials(self.wTree.get_object("input_user").get_text(), 
+        self.keys.set_credentials(self.wTree.get_object("input_user").get_text(),
                                   self.wTree.get_object("input_password").get_text())
         
         # Mailboxes
