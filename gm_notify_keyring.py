@@ -5,18 +5,18 @@ __version__ = "$Revision: 14294 $"
 from gi.repository import GnomeKeyring, Gtk
 
 def attributes(d):
-  '''Converts a dictionary to a GnomeKeyring.Attribute array'''
-  attrs = GnomeKeyring.Attribute.list_new()
-  for key in d:
-    GnomeKeyring.Attribute.list_append_string(attrs, key, str(d[key]))
-  return attrs
+    '''Converts a dictionary to a GnomeKeyring.Attribute array'''
+    attrs = GnomeKeyring.Attribute.list_new()
+    for key in d:
+        GnomeKeyring.Attribute.list_append_string(attrs, key, str(d[key]))
+    return attrs
 
 def dict_from_attributes(attrs):
-  '''Converts item results back into a dictionary'''
-  result = {}
-  for attr in GnomeKeyring.Attribute.list_to_glist(attrs):
-    result[attr.name] = attr.get_string()
-  return result
+    '''Converts item results back into a dictionary'''
+    result = {}
+    for attr in GnomeKeyring.Attribute.list_to_glist(attrs):
+        result[attr.name] = attr.get_string()
+    return result
 
 class KeyringException(Exception):
   pass
