@@ -29,10 +29,6 @@ import shutil
 
 from gi.repository import Gio, Gtk
 
-#import pygtk
-#pygtk.require("2.0")
-#import gtk, gtk.glade
-#import gconf
 from twisted.internet import gtk3reactor
 gtk3reactor.install()
 from twisted.internet import reactor
