@@ -94,7 +94,7 @@ class MailChecker():
         try:
             self.timeout_call_id.cancel()
         except error.AlreadyCalled:
-            DEBUG("already called timeout_call_id.cancel()")    
+            DEBUG("already called timeout_call_id.cancel()")
             return
         if callback:
             callback(data, **kargs)
