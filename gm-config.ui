@@ -5,6 +5,7 @@
     <property name="can_focus">False</property>
     <property name="border_width">10</property>
     <property name="title" translatable="yes">GMail Notifier</property>
+    <property name="window_position">center</property>
     <property name="icon_name">evolution</property>
     <child>
       <object class="GtkBox" id="vbox_main">
