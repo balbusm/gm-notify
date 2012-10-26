@@ -69,7 +69,10 @@ def play_sound(name):
     # Assume it is a sound id
     else:
         command.extend(["-i", name])
-    result = GLib.spawn_async(command)
+    try:
+        result = GLib.spawn_async(command)
+    except:
+        return
     # Does nothing but the documentation says to do it anyway
     if len(result) > 0:
         GLib.spawn_close_pid(result[0])
@@ -208,7 +211,11 @@ class CheckMail(Gio.Application):
                 # Remove attention if the count has decreased
                 if last_count > current_count:
                     self._m_menu.remove_attention(mailbox[0])
-                self._m_menu.set_source_count(mailbox[0], current_count)
+                if current_count > 0:
+                    self._m_menu.set_source_count(mailbox[0], current_count)
+                # Remove the source if 0 messages, to save space
+                else:
+                    self._m_menu.remove_source(mailbox[0])
                 self._counts[mailbox[0]] = current_count
     
     def new_mail(self, mails):
@@ -265,9 +272,6 @@ class CheckMail(Gio.Application):
         else:
             webbrowser.open(url)
 
-        # Add the source after click
-        GLib.idle_add(self.has_source, source_id)
-    
     def showNotification(self, title, message):
         '''takes a title and a message to display the email notification. Returns the
         created notification object'''
