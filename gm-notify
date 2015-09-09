@@ -92,6 +92,13 @@ class CheckMail(Gio.Application):
         '''Stops the application when the "remote-quit" action is activated'''
         reactor.stop()
 
+    def run(self, args):
+        self.register();
+        if self.get_is_remote():
+            self.activate()
+        else:
+            super(CheckMail, self).run(args)
+
     def on_activate(self, app):
         '''When first receiving the activate signal, initialize the primary
         instance. On subsequent activate signals, we are being activated from a
