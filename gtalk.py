@@ -25,13 +25,18 @@ from threading import Event
 
 from twisted.words.protocols.jabber import xmlstream, client, jid
 from twisted.words.xish import domish
-from twisted.internet import reactor, task, error
+from twisted.internet import reactor, task, error, ssl
+
+from datetime import datetime
 
 _DEBUG = False
 COLOR_GREEN = "\033[92m"
 COLOR_END = "\033[0m"
 def DEBUG(msg):
-    if _DEBUG: print(COLOR_GREEN + str(msg) + COLOR_END)
+    if _DEBUG:
+        curent_time = datetime.now()
+
+        print(COLOR_GREEN + str(curent_time) + " " +str(msg) + COLOR_END)
 
 class GTalkClientFactory(xmlstream.XmlStreamFactory):
     def __init__(self, jid, password):
@@ -39,14 +44,29 @@ class GTalkClientFactory(xmlstream.XmlStreamFactory):
         xmlstream.XmlStreamFactory.__init__(self, a)
         
         self.reconnect = True
+        self.connection_failed = False
+        self.alternate_port = 443
     
     def clientConnectionLost(self, connector, reason):
-        if self.reconnect: xmlstream.XmlStreamFactory.clientConnectionLost(self, connector, reason)
+        DEBUG("clientConnectionLost " + str(reason))
+        if self.reconnect:
+            self.connection_failed = False
+            # keep the port as it used to work
+            self.alternate_port = connector.port
+            xmlstream.XmlStreamFactory.clientConnectionLost(self, connector, reason)
+    def clientConnectionFailed(self, connector, reason):
+        DEBUG("clientConnectionFailed " + str(reason) + " reconnecting:" + str(self.reconnect) + " port: " + str(connector.port))
+        if self.reconnect and connector.port != self.alternate_port:
+            connector.port = self.alternate_port
+            xmlstream.XmlStreamFactory.clientConnectionFailed(self, connector, reason)
+        else:
+            self.connection_failed = True
 
 class MailChecker():
     def __init__(self, jid, password, labels=[], cb_new=None, cb_count=None):
         self.host = "talk.google.com"
-        self.port = 5222
+        self.port = 5222 #443 
+        self.alternative_port = 443
         self.jid = jid
         self.password = password
         self.cb_new = cb_new
@@ -85,9 +105,12 @@ class MailChecker():
         self.query_task = task.LoopingCall(self.queryInbox)
         self.query_task.start(60)
         
-        self.connector = reactor.connectTCP(self.host, self.port, self.factory)
+        # ssl.ClientContextFactory()
+        
+        self.connector = reactor.connectSSL(self.host, self.port, self.factory, ssl.ClientContextFactory())
     
     def reply_timeout(self):
+        DEBUG("reply_timeout")
         self.connector.disconnect() # Our reconnecting factory will try the reconnecting
 
     def send_callback_handler(self, data, callback=None, **kargs):
@@ -120,10 +143,12 @@ class MailChecker():
         DEBUG("disconnected")
     
     def init_failedCB(self, xmlstream):
+        DEBUG("init_failedCB")
         if self.cb_auth_failed: self.cb_auth_failed()
         self.disconnectCB(xmlstream)
     
     def authenticationCB(self, xmlstream):
+        DEBUG("authenticationCB")
         if self.cb_auth_successful: self.cb_auth_successful()
         self.factory.resetDelay()
         
@@ -135,12 +160,17 @@ class MailChecker():
         self.send(iq, "/iq", self.usersettingIQ)
     
     def usersettingIQ(self, iq):
+        DEBUG("usersettingIQ")
         self.ready_for_query_state = True
         self.queryInbox()
     
     def queryInbox(self):
-        if not self.ready_for_query_state: return
+        DEBUG("queryInbox")
+        if not(self.ready_for_query_state or self.factory.connection_failed):
+            DEBUG("queryInbox: not ready for query: " + str(self.ready_for_query_state) + " connection_failed:" + str(self.factory.connection_failed))
+            return
         if self.disconnected:
+            DEBUG("queryInbox: disconnected")
             self.connector.connect()
             return
         self.ready_for_query_state = False
@@ -149,17 +179,19 @@ class MailChecker():
         
         iq = domish.Element((None, "iq"), attribs={"type": "get", "id": "mail-request-1"})
         query = iq.addElement(("google:mail:notify", "query"))
+        DEBUG("queryInbox: requesting for label")
         self.send(iq, "/iq", self.gotLabel)
     
     def queryLabel(self):
         try:
             label = self.labels_iter.next()
-            
+            DEBUG("queryLabel " + label)
             iq = domish.Element((None, "iq"), attribs={"type": "get", "id": "mail-request-1"})
             query = iq.addElement(("google:mail:notify", "query"))
             query.attributes['q'] = "label:%s AND is:unread" % label
             self.send(iq, "/iq", self.gotLabel, label=label)
         except StopIteration:
+            DEBUG("queryLabel: end of iteration")
             self.labels_iter = iter(self.labels)
             self.xmlstream.addObserver("/iq", self.gotNewMail)
             if self.cb_count: self.cb_count(self.count)
