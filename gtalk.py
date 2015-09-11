@@ -21,13 +21,15 @@
 #
 from __future__ import print_function
 
-from threading import Event
-
 from twisted.words.protocols.jabber import xmlstream, client, jid
 from twisted.words.xish import domish
 from twisted.internet import reactor, task, error, ssl
+from twisted.internet.error import TimeoutError, ConnectionRefusedError
 
 from datetime import datetime
+
+GTALK_HOST = "talk.google.com"
+GTALK_PORTS = (5222, 443)
 
 _DEBUG = False
 COLOR_GREEN = "\033[92m"
@@ -35,38 +37,77 @@ COLOR_END = "\033[0m"
 def DEBUG(msg):
     if _DEBUG:
         curent_time = datetime.now()
-
+ 
         print(COLOR_GREEN + str(curent_time) + " " +str(msg) + COLOR_END)
 
 class GTalkClientFactory(xmlstream.XmlStreamFactory):
-    def __init__(self, jid, password):
+    
+    def __init__(self, jid, password, ports):
         a = client.XMPPAuthenticator(jid, password)
         xmlstream.XmlStreamFactory.__init__(self, a)
+        self.addBootstrap(xmlstream.STREAM_CONNECTED_EVENT, self.clientConnected)
         
         self.reconnect = True
         self.connection_failed = False
-        self.alternate_port = 443
+        self.ports = ports
+        self.current_port = 0
+        self.__resetPortsToCheck()
     
     def clientConnectionLost(self, connector, reason):
-        DEBUG("clientConnectionLost " + str(reason))
+        DEBUG("clientConnectionLost %s" % str(reason))
         if self.reconnect:
+            DEBUG("clientConnectionLost: Reconnecting with the same settings (port %d)" % connector.port)
             self.connection_failed = False
-            # keep the port as it used to work
-            self.alternate_port = connector.port
+            self.__resetPortsToCheck()
+            # reconnect on the same port as it used to work
             xmlstream.XmlStreamFactory.clientConnectionLost(self, connector, reason)
+         
     def clientConnectionFailed(self, connector, reason):
-        DEBUG("clientConnectionFailed " + str(reason) + " reconnecting:" + str(self.reconnect) + " port: " + str(connector.port))
-        if self.reconnect and connector.port != self.alternate_port:
-            connector.port = self.alternate_port
+        DEBUG("clientConnectionFailed %s on port: %d reconnecting: %s" % (str(reason), connector.port, str(self.reconnect)))
+        if self.__shouldTryDifferentPorts(reason):
+            self.connection_failed = False
+            connector.port = self.__getNextPortToCheck()
+            DEBUG("clientConnectionFailed: Reconnecting on port %d" % connector.port)
             xmlstream.XmlStreamFactory.clientConnectionFailed(self, connector, reason)
         else:
+            DEBUG("clientConnectionFailed: Connection failed");
             self.connection_failed = True
+    
+    def __shouldTryDifferentPorts(self, reason):
+        # TimeoutError or ConnectionRefusedError may indicate blocked port 
+        return self.reconnect and self.__hasPortsToCheck() and reason.check(TimeoutError, ConnectionRefusedError) is not None
+    
+    def clientConnected(self, xmlstream):
+        DEBUG("clientConnected") 
+        self.connection_failed = False
+        self.__resetPortsToCheck()
+    
+    def __hasPortsToCheck(self):
+        return self.ports_to_check > 0
+    
+    def __resetPortsToCheck(self):
+        self.ports_to_check = len(self.ports)
+    
+    def __getNextPortToCheck(self):
+        self.ports_to_check -= 1
+        return self.__nextPort()
+          
+    def getCurrentPort(self):
+        return self.ports[self.current_port]
+    
+    def hasConnectionFailed(self):
+        return self.connection_failed
+    
+    def __nextPort(self):
+        self.current_port += 1
+        if len(self.ports) <= self.current_port:
+            self.current_port = 0
+        return self.ports[self.current_port]
 
 class MailChecker():
     def __init__(self, jid, password, labels=[], cb_new=None, cb_count=None):
-        self.host = "talk.google.com"
-        self.port = 5222 #443 
-        self.alternative_port = 443
+        self.host = GTALK_HOST
+        self.ports = GTALK_PORTS
         self.jid = jid
         self.password = password
         self.cb_new = cb_new
@@ -93,7 +134,7 @@ class MailChecker():
         self.connector.disconnect()
     
     def connect(self):
-        self.factory = GTalkClientFactory(self.jid, self.password)
+        self.factory = GTalkClientFactory(self.jid, self.password, self.ports)
         self.factory.addBootstrap(xmlstream.STREAM_END_EVENT, self.disconnectCB)
         self.factory.addBootstrap(xmlstream.STREAM_ERROR_EVENT, self.disconnectCB)
         self.factory.addBootstrap(xmlstream.INIT_FAILED_EVENT, self.init_failedCB)
@@ -105,9 +146,7 @@ class MailChecker():
         self.query_task = task.LoopingCall(self.queryInbox)
         self.query_task.start(60)
         
-        # ssl.ClientContextFactory()
-        
-        self.connector = reactor.connectSSL(self.host, self.port, self.factory, ssl.ClientContextFactory())
+        self.connector = reactor.connectSSL(self.host, self.factory.getCurrentPort(), self.factory, ssl.ClientContextFactory())
     
     def reply_timeout(self):
         DEBUG("reply_timeout")
@@ -138,9 +177,9 @@ class MailChecker():
         self.xmlstream.send(data)
     
     def disconnectCB(self, xmlstream):
+        DEBUG("disconnected")
         self.ready_for_query_state = False
         self.disconnected = True
-        DEBUG("disconnected")
     
     def init_failedCB(self, xmlstream):
         DEBUG("init_failedCB")
@@ -166,8 +205,9 @@ class MailChecker():
     
     def queryInbox(self):
         DEBUG("queryInbox")
-        if not(self.ready_for_query_state or self.factory.connection_failed):
-            DEBUG("queryInbox: not ready for query: " + str(self.ready_for_query_state) + " connection_failed:" + str(self.factory.connection_failed))
+        if not(self.ready_for_query_state or self.factory.hasConnectionFailed()):
+            DEBUG("queryInbox: ready for query: %s connection_failed: %s" % (str(self.ready_for_query_state), str(self.factory.hasConnectionFailed())))
+            DEBUG("queryInbox: skipping query request")
             return
         if self.disconnected:
             DEBUG("queryInbox: disconnected")
