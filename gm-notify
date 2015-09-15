@@ -43,6 +43,8 @@ MAILBOXES_NAMES = { "inbox": _("Inbox") }
 
 MAILBOXES_URLS = {  "inbox": "" }
 
+EMAIL_RETRIEVAL_ERROR = "--retrieval-error"
+
 class PathNotFound(Exception): pass
 
 def get_executable_path(name):
@@ -161,6 +163,9 @@ class CheckMail(Gio.Application):
         self.mailboxes = self.client.get_strv("mailboxes")
         self.mailboxes.insert(0, "inbox")
         self.checker = MailChecker(self.jid, self.creds[1], self.mailboxes[1:], self.new_mail, self.update_count)
+        self.checker.setOnConnectionErrorCB(self.checker_connection_error)
+        self.checker.setOnAuthFailed(self.checker_auth_failed)
+        self.checker.setOnAuthSucceeded(self.checker_auth_succeeded)
         self.checker.connect()
     
     def indicator_clicked(self):
@@ -249,11 +254,13 @@ class CheckMail(Gio.Application):
             text += "- " + title + "\n"
             
         if text:
-            self.showNotification(_("Incoming message"), text.strip("\n"))
+            self.show_notification(_("Incoming message"), text.strip("\n"))
             play_sound(self._soundfile)
     
     def source_clicked(self, app, source_id):
         '''called when a label is clicked in the indicator-applet and opens the corresponding gmail page'''
+        if source_id == EMAIL_RETRIEVAL_ERROR:
+            return
         if self.domain:
             url = "https://mail.google.com/a/"+self.domain+"/"
         else:
@@ -274,7 +281,26 @@ class CheckMail(Gio.Application):
         else:
             webbrowser.open(url)
 
-    def showNotification(self, title, message):
+    def checker_auth_succeeded(self):
+        self._m_menu.remove_source(EMAIL_RETRIEVAL_ERROR)
+    
+    def checker_connection_error(self, error): 
+        self.check_failed(error)
+    
+    def checker_auth_failed(self, error):
+        self.check_failed(error)
+    
+    def check_failed(self, feed):
+        for label in self._counts:
+            self._m_menu.remove_source(label)
+            
+        if self._m_menu.has_source(EMAIL_RETRIEVAL_ERROR):
+            return
+        self._m_menu.append_source(EMAIL_RETRIEVAL_ERROR, None, "Cannot retrieve emails")
+        n = Notify.Notification.new("Error", "Cannot retrieve emails", "messagebox_critical")
+        n.show()
+    
+    def show_notification(self, title, message):
         '''takes a title and a message to display the email notification. Returns the
         created notification object'''
         

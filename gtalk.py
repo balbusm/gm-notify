@@ -49,6 +49,7 @@ class GTalkClientFactory(xmlstream.XmlStreamFactory):
         
         self.reconnect = True
         self.connection_failed = False
+        self.cb_connection_error = None
         self.ports = ports
         self.current_port = 0
         self.__resetPortsToCheck()
@@ -57,6 +58,7 @@ class GTalkClientFactory(xmlstream.XmlStreamFactory):
         DEBUG("clientConnectionLost %s" % str(reason))
         if self.reconnect:
             DEBUG("clientConnectionLost: Reconnecting with the same settings (port %d)" % connector.port)
+            if self.cb_connection_error : self.cb_connection_error(reason)
             self.connection_failed = False
             self.__resetPortsToCheck()
             # reconnect on the same port as it used to work
@@ -71,6 +73,7 @@ class GTalkClientFactory(xmlstream.XmlStreamFactory):
             xmlstream.XmlStreamFactory.clientConnectionFailed(self, connector, reason)
         else:
             DEBUG("clientConnectionFailed: Connection failed");
+            if self.cb_connection_error : self.cb_connection_error(reason)
             self.connection_failed = True
     
     def __shouldTryDifferentPorts(self, reason):
@@ -103,6 +106,9 @@ class GTalkClientFactory(xmlstream.XmlStreamFactory):
         if len(self.ports) <= self.current_port:
             self.current_port = 0
         return self.ports[self.current_port]
+    
+    def setOnConnectionErrorCB(self, cb_connection_error):
+        self.cb_connection_error = cb_connection_error
 
 class MailChecker():
     def __init__(self, jid, password, labels=[], cb_new=None, cb_count=None):
@@ -112,8 +118,10 @@ class MailChecker():
         self.password = password
         self.cb_new = cb_new
         self.cb_count = cb_count
-        self.cb_auth_successful = None
+        self.cb_auth_succeeded = None
         self.cb_auth_failed = None
+        self.cb_connection_error = None
+        self.cb_connected = None
         
         self.last_tids = {}
         self.labels = labels
@@ -128,6 +136,18 @@ class MailChecker():
         self.timeout_call_id = None
         self.disconnected = True
     
+    def setOnConnectionErrorCB(self, cb_connection_error):
+        self.cb_connection_error = cb_connection_error
+    
+    def setOnConnectedCB(self, cb_connected):
+        self.cb_connected = cb_connected
+        
+    def setOnAuthFailed(self, cb_auth_failed):
+        self.cb_auth_failed = cb_auth_failed
+
+    def setOnAuthSucceeded(self, cb_auth_succeeded):
+        self.cb_auth_succeeded = cb_auth_succeeded
+    
     def die(self):
         self.factory.reconnect = False
         self.query_task.stop()
@@ -135,6 +155,7 @@ class MailChecker():
     
     def connect(self):
         self.factory = GTalkClientFactory(self.jid, self.password, self.ports)
+        self.factory.setOnConnectionErrorCB(self.cb_connection_error)
         self.factory.addBootstrap(xmlstream.STREAM_END_EVENT, self.disconnectCB)
         self.factory.addBootstrap(xmlstream.STREAM_ERROR_EVENT, self.disconnectCB)
         self.factory.addBootstrap(xmlstream.INIT_FAILED_EVENT, self.init_failedCB)
@@ -188,7 +209,7 @@ class MailChecker():
     
     def authenticationCB(self, xmlstream):
         DEBUG("authenticationCB")
-        if self.cb_auth_successful: self.cb_auth_successful()
+        if self.cb_auth_succeeded: self.cb_auth_succeeded()
         self.factory.resetDelay()
         
         # We set the usersetting mail-notification
@@ -320,14 +341,15 @@ class MailChecker():
         if iq: self.queryInbox()
     
     def rawDataIn(self, buf):
-        print(u"< %s" % unicode(buf, "utf-8"))
+        print(u"> %s" % unicode(buf, "utf-8"))
     
     def rawDataOut(self, buf):
-        print(u"> %s" % unicode(buf, "utf-8"))
+        print(u"< %s" % unicode(buf, "utf-8"))
     
     def connectedCB(self, xmlstream):
         self.xmlstream = xmlstream
         self.disconnected = False
+        if self.cb_connected: self.cb_connected()
         
         if _DEBUG:
             xmlstream.rawDataInFn = self.rawDataIn
