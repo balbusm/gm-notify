@@ -309,6 +309,11 @@ class CheckMail(Gio.Application):
         
         return n
     
+    def shutdown(self):
+        if self.checker : self.checker.die()
+    
 cm = CheckMail()
 reactor.registerGApplication(cm)
+reactor.addSystemEventTrigger('before', 'shutdown', cm.shutdown)
 reactor.run()
+

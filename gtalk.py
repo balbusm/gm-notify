@@ -56,16 +56,21 @@ class GTalkClientFactory(xmlstream.XmlStreamFactory):
     
     def clientConnectionLost(self, connector, reason):
         DEBUG("clientConnectionLost %s" % str(reason))
-        if self.reconnect:
-            DEBUG("clientConnectionLost: Reconnecting with the same settings (port %d)" % connector.port)
-            if self.cb_connection_error : self.cb_connection_error(reason)
-            self.connection_failed = False
-            self.__resetPortsToCheck()
-            # reconnect on the same port as it used to work
-            xmlstream.XmlStreamFactory.clientConnectionLost(self, connector, reason)
+        if not self.reconnect:
+            return
+        
+        DEBUG("clientConnectionLost: Reconnecting with the same settings (port %d)" % connector.port)
+        if self.cb_connection_error : self.cb_connection_error(reason)
+        self.connection_failed = False
+        self.__resetPortsToCheck()
+        # reconnect on the same port as it used to work
+        xmlstream.XmlStreamFactory.clientConnectionLost(self, connector, reason)
          
     def clientConnectionFailed(self, connector, reason):
         DEBUG("clientConnectionFailed %s on port: %d reconnecting: %s" % (str(reason), connector.port, str(self.reconnect)))
+        if not self.reconnect:
+            return
+        
         if self.__shouldTryDifferentPorts(reason):
             self.connection_failed = False
             connector.port = self.__getNextPortToCheck()
@@ -78,7 +83,7 @@ class GTalkClientFactory(xmlstream.XmlStreamFactory):
     
     def __shouldTryDifferentPorts(self, reason):
         # TimeoutError or ConnectionRefusedError may indicate blocked port 
-        return self.reconnect and self.__hasPortsToCheck() and reason.check(TimeoutError, ConnectionRefusedError) is not None
+        return self.__hasPortsToCheck() and reason.check(TimeoutError, ConnectionRefusedError) is not None
     
     def clientConnected(self, xmlstream):
         DEBUG("clientConnected") 
@@ -149,6 +154,7 @@ class MailChecker():
         self.cb_auth_succeeded = cb_auth_succeeded
     
     def die(self):
+        DEBUG("Dying...")
         self.factory.reconnect = False
         self.query_task.stop()
         self.connector.disconnect()
