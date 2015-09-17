@@ -35,6 +35,7 @@ from twisted.internet import reactor
 from twisted.words.protocols.jabber import jid
 
 from gtalk import MailChecker
+from settings_provider import SettingsProvider
 import gm_notify_keyring as keyring
 
 _ = gettext.translation('gm-notify', fallback=True).ugettext
@@ -141,13 +142,11 @@ class CheckMail(Gio.Application):
         else:
             self.domain = self.jid.host
         
-        self.client = Gio.Settings("net.launchpad.gm-notify")
+        self.client = SettingsProvider()
         
         # Set up the sound file
-        self._soundfile = self.client.get_string("soundfile")
-        if self._soundfile == '':
-            self._soundfile = "message-new-instant"
-        if not self.client.get_boolean("play-sound"):
+        self._soundfile = self.client.retrieve_sound_file("message-new-instant")
+        if not self.client.retrieve_sound_enabled():
             self._soundfile = None
 
         # Messaging Menu integration
@@ -157,12 +156,12 @@ class CheckMail(Gio.Application):
 
         # Read ignore-inbox value. If true you will only receive notifications
         # about configured labels
-        self.ignore_inbox = self.client.get_boolean("ignore-inbox")
+        self.ignore_inbox = self.client.retrieve_ignore_inbox()
         
         # Retrieve the mailbox we're gonna check
-        self.mailboxes = self.client.get_strv("mailboxes")
+        self.mailboxes = self.client.retrieve_mailboxes()
         self.mailboxes.insert(0, "inbox")
-        self.checker = MailChecker(self.jid, self.creds[1], self.mailboxes[1:], self.new_mail, self.update_count)
+        self.checker = MailChecker(self.jid, self.creds[1], self.client, self.mailboxes[1:], self.new_mail, self.update_count)
         self.checker.setOnConnectionErrorCB(self.checker_connection_error)
         self.checker.setOnAuthFailed(self.checker_auth_failed)
         self.checker.setOnAuthSucceeded(self.checker_auth_succeeded)
@@ -272,7 +271,7 @@ class CheckMail(Gio.Application):
             url += "#label/%s" % source_id
         
         # Open mail client
-        if self.client.get_boolean("openclient"):
+        if self.client.retrieve_use_mail_client():
             try:
                 info = Gio.AppInfo.get_default_for_type("x-scheme-handler/mailto", False)
                 info.launch(None, None)

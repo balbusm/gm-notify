@@ -36,6 +36,7 @@ from twisted.words.protocols.jabber import jid
 
 import gm_notify_keyring as keyring
 from gtalk import MailChecker
+from settings_provider import SettingsProvider
 
 _ = gettext.translation('gm-notify', fallback=True).ugettext
 
@@ -66,7 +67,7 @@ class Window(Gtk.Application):
         # GUI initialization
         #####
         self.keys = keyring.Keyring("GMail", "mail.google.com", "http")
-        self.client = Gio.Settings("net.launchpad.gm-notify")
+        self.client = SettingsProvider()
         
         if os.path.exists("gm-config.ui"):
             builder_file = "gm-config.ui"
@@ -102,7 +103,7 @@ class Window(Gtk.Application):
         self.input_user.set_text(self.creds[0])
         self.input_password.set_text(self.creds[1])
         
-        self.api = MailChecker("", "")
+        self.api = MailChecker("", "", self.client)
         self.api.setOnAuthSucceeded(self.credentials_valid)
         self.api.setOnAuthFailed(self.credentials_invalid)
         self.api.setOnConnectionErrorCB(self.connection_error)
@@ -110,20 +111,21 @@ class Window(Gtk.Application):
         self.check_credentials(None, None)
         
         # Sound
-        self.wTree.get_object("checkbutton_sound").set_active(self.client.get_boolean("play-sound"))
-        if self.client.get_string("soundfile"):
-            self.wTree.get_object("fcbutton_sound").set_filename(self.client.get_string("soundfile"))
+        self.wTree.get_object("checkbutton_sound").set_active(self.client.retrieve_sound_enabled())
+        sound_file = self.client.retrieve_sound_file()
+        if sound_file:
+            self.wTree.get_object("fcbutton_sound").set_filename(sound_file)
         self.on_checkbutton_sound_toggled(self.wTree.get_object("checkbutton_sound"))
         
         # ClickAction
-        if self.client.get_boolean("openclient"):
+        if self.client.retrieve_use_mail_client():
             self.wTree.get_object("radiobutton_openclient").set_active(True)
         else:
             self.wTree.get_object("radiobutton_openweb").set_active(True)
         
         # Mailboxes
-        mailboxes = self.client.get_strv("mailboxes")
-        self.wTree.get_object("checkbutton_inbox").set_active(self.client.get_boolean("ignore-inbox"))
+        self.wTree.get_object("checkbutton_inbox").set_active(self.client.retrieve_ignore_inbox())
+        mailboxes = self.client.retrieve_mailboxes()
         self.wTree.get_object("entry_labels").set_text(", ".join(mailboxes))
 
         # Autorun
@@ -153,18 +155,18 @@ class Window(Gtk.Application):
         mailboxes = []
         for label in self.wTree.get_object("entry_labels").get_text().split(","):
             mailboxes.append(label.strip())
-        self.client.set_strv("mailboxes", mailboxes)
-        self.client.set_boolean("ignore-inbox", self.wTree.get_object("checkbutton_inbox").get_active())
+        self.client.save_mailboxes(mailboxes)
+        self.client.save_ignore_inbox(self.wTree.get_object("checkbutton_inbox").get_active())
         
         # ClickAction
-        self.client.set_boolean("openclient", self.wTree.get_object("radiobutton_openclient").get_active())
+        self.client.save_use_mail_client(self.wTree.get_object("radiobutton_openclient").get_active())
 
         # Soundfile
         if self.wTree.get_object("checkbutton_sound").get_active() and self.wTree.get_object("fcbutton_sound").get_filename():
-            self.client.set_boolean("play-sound", True)
-            self.client.set_string("soundfile", str(self.wTree.get_object("fcbutton_sound").get_filename()))
+            self.client.save_sound_enabled(True)
+            self.client.save_sound_file(str(self.wTree.get_object("fcbutton_sound").get_filename()))
         else:
-            self.client.set_boolean("play-sound", False)
+            self.client.save_sound_enabled(False)
 
         # Autorun
         if self.wTree.get_object("checkbutton_autostart").get_active():
@@ -227,7 +229,7 @@ class Window(Gtk.Application):
         self.input_user.set_sensitive(True)
         self.input_password.set_sensitive(True)
         self.button_apply.set_sensitive(valid)
-        
+
         self.api.die()
 
 t = Window()

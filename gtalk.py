@@ -27,11 +27,11 @@ from twisted.internet import reactor, task, error, ssl
 from twisted.internet.error import TimeoutError, ConnectionRefusedError
 
 from datetime import datetime
+import settings_provider
 
 GTALK_HOST = "talk.google.com"
-GTALK_PORTS = (5222, 443)
 
-_DEBUG = False
+_DEBUG = True
 COLOR_GREEN = "\033[92m"
 COLOR_END = "\033[0m"
 def DEBUG(msg):
@@ -42,7 +42,7 @@ def DEBUG(msg):
 
 class GTalkClientFactory(xmlstream.XmlStreamFactory):
     
-    def __init__(self, jid, password, ports):
+    def __init__(self, jid, password, ports, settings_provider):
         a = client.XMPPAuthenticator(jid, password)
         xmlstream.XmlStreamFactory.__init__(self, a)
         self.addBootstrap(xmlstream.STREAM_CONNECTED_EVENT, self.clientConnected)
@@ -50,8 +50,9 @@ class GTalkClientFactory(xmlstream.XmlStreamFactory):
         self.reconnect = True
         self.connection_failed = False
         self.cb_connection_error = None
-        self.ports = ports
-        self.current_port = 0
+        self.settings_provider = settings_provider
+        self.ports = self.__rearrange_ports(ports, settings_provider.retrieve_preferred_port())
+        self.current_port_ind = 0
         self.__resetPortsToCheck()
     
     def clientConnectionLost(self, connector, reason):
@@ -88,6 +89,8 @@ class GTalkClientFactory(xmlstream.XmlStreamFactory):
     def clientConnected(self, xmlstream):
         DEBUG("clientConnected") 
         self.connection_failed = False
+        self.settings_provider.save_preferred_port(self.getCurrentPort())
+        self.ports = self.__rearrange_ports(self.ports, self.getCurrentPort())
         self.__resetPortsToCheck()
     
     def __hasPortsToCheck(self):
@@ -101,24 +104,30 @@ class GTalkClientFactory(xmlstream.XmlStreamFactory):
         return self.__nextPort()
           
     def getCurrentPort(self):
-        return self.ports[self.current_port]
+        return self.ports[self.current_port_ind]
     
     def hasConnectionFailed(self):
         return self.connection_failed
     
     def __nextPort(self):
-        self.current_port += 1
-        if len(self.ports) <= self.current_port:
-            self.current_port = 0
-        return self.ports[self.current_port]
+        self.current_port_ind += 1
+        if len(self.ports) <= self.current_port_ind:
+            self.current_port_ind = 0
+        return self.ports[self.current_port_ind]
     
     def setOnConnectionErrorCB(self, cb_connection_error):
         self.cb_connection_error = cb_connection_error
+        
+    def __rearrange_ports(self, ports, preferred_port):
+        ports.remove(preferred_port)
+        ports.insert(0, preferred_port)
+        return ports
 
 class MailChecker():
-    def __init__(self, jid, password, labels=[], cb_new=None, cb_count=None):
+    def __init__(self, jid, password, settings_provider, labels=[], cb_new=None, cb_count=None):
         self.host = GTALK_HOST
-        self.ports = GTALK_PORTS
+        self.settings_provider = settings_provider
+        self.ports = settings_provider.retrieve_ports_range() 
         self.jid = jid
         self.password = password
         self.cb_new = cb_new
@@ -160,7 +169,7 @@ class MailChecker():
         self.connector.disconnect()
     
     def connect(self):
-        self.factory = GTalkClientFactory(self.jid, self.password, self.ports)
+        self.factory = GTalkClientFactory(self.jid, self.password, self.ports, self.settings_provider)
         self.factory.setOnConnectionErrorCB(self.cb_connection_error)
         self.factory.addBootstrap(xmlstream.STREAM_END_EVENT, self.disconnectCB)
         self.factory.addBootstrap(xmlstream.STREAM_ERROR_EVENT, self.disconnectCB)
@@ -360,3 +369,6 @@ class MailChecker():
         if _DEBUG:
             xmlstream.rawDataInFn = self.rawDataIn
             xmlstream.rawDataOutFn = self.rawDataOut
+            
+    def getCurrentPort(self):
+        return self.factory.getCurrentPort()

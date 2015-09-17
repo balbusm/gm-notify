@@ -21,5 +21,13 @@
       <default>false</default>
       <summary>Shall we open the default mail client or webinterface?</summary>
     </key>
+    <key type="s" name="preferred-port">
+      <choices>
+        <choice value='5222' />
+        <choice value='443'/>
+      </choices>
+      <default>'5222'</default>
+      <summary>Port used to connect to Google services</summary>
+    </key>
   </schema>
 </schemalist>
