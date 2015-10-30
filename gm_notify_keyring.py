@@ -3,6 +3,9 @@ from __future__ import print_function
 __version__ = "$Revision: 14294 $"
 
 from gi.repository import GnomeKeyring, Gtk
+from collections import namedtuple
+Credentials = namedtuple("Credentials", ["username", "password"])
+Credentials.__new__.__defaults__ = ("", "")
 
 def attributes(d):
     '''Converts a dictionary to a GnomeKeyring.Attribute array'''
@@ -28,26 +31,40 @@ class Keyring(object):
         self._protocol = protocol
         result, self._keyring = GnomeKeyring.get_default_keyring_sync()
     
-    def has_credentials(self):
+    def has_any_credentials(self):
         attrs = attributes({"server": self._server, "protocol": self._protocol})
         result, items = GnomeKeyring.find_items_sync(GnomeKeyring.ItemType.NETWORK_PASSWORD, attrs)
         if result in (GnomeKeyring.Result.NO_MATCH, GnomeKeyring.Result.DENIED):
             return False
         return len(items) > 0
 
-    def get_credentials(self):
+    def get_all_credentials(self):
         attrs = attributes({"server": self._server, "protocol": self._protocol})
         result, items = GnomeKeyring.find_items_sync(GnomeKeyring.ItemType.NETWORK_PASSWORD, attrs)
         if len(items) == 0:
             raise KeyringException("Credentials not found")
-        d = dict_from_attributes(items[0].attributes)
-        return (d["user"], items[0].secret)
+        credentials_list = []
+        for item in items:
+            d = dict_from_attributes(item.attributes)
+            credentials_list.append(Credentials(d["user"], item.secret))
+        return credentials_list
     
-    def delete_credentials(self):
+    def delete_all_credentials(self):
         attrs = attributes({"server": self._server, "protocol": self._protocol})
         result, items = GnomeKeyring.find_items_sync(GnomeKeyring.ItemType.NETWORK_PASSWORD, attrs)
         for item in items:
             GnomeKeyring.item_delete_sync(self._keyring, item.item_id)
+
+    def delete_credentials(self, user):
+        attrs = attributes({
+                            "user": user,
+                            "server": self._server,
+                            "protocol": self._protocol
+                            })
+        result, items = GnomeKeyring.find_items_sync(GnomeKeyring.ItemType.NETWORK_PASSWORD, attrs)
+        for item in items:
+            GnomeKeyring.item_delete_sync(self._keyring, item.item_id)
+
     
     def set_credentials(self, user, pw):
         attrs = attributes({

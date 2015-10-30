@@ -149,6 +149,7 @@ class MailChecker():
         self.ready_for_query_state = False
         self.timeout_call_id = None
         self.disconnected = True
+        self.running = False
     
     def setOnConnectionErrorCB(self, cb_connection_error):
         self.cb_connection_error = cb_connection_error
@@ -162,11 +163,15 @@ class MailChecker():
     def setOnAuthSucceeded(self, cb_auth_succeeded):
         self.cb_auth_succeeded = cb_auth_succeeded
     
+    def is_running(self):
+        return self.running
+    
     def die(self):
         DEBUG("Dying...")
         self.factory.reconnect = False
         self.query_task.stop()
         self.connector.disconnect()
+        self.running = False
     
     def connect(self):
         self.factory = GTalkClientFactory(self.jid, self.password, self.ports, self.settings_provider)
@@ -181,6 +186,7 @@ class MailChecker():
         
         self.query_task = task.LoopingCall(self.queryInbox)
         self.query_task.start(60)
+        self.running = True
         
         self.connector = reactor.connectSSL(self.host, self.factory.getCurrentPort(), self.factory, ssl.ClientContextFactory())
     

@@ -1,3 +1,47 @@
+gm-notify (1.0.0-0ubuntu1) vivid; urgency=medium
+
+  * Added multi-account support
+  * Added support for multiple ports (default port 443)
+  * Added error messages
+  * Refactored the code
+  * Made app a single instance 
+
+ -- Mateusz Balbus <balbusm@gmail.com>  Thu, 15 Oct 2015 15:43:32 +0200
+
+gm-notify (0.10.3-0ubuntu3) trusty; urgency=low
+
+  * Convert to dh_python2.
+  * Wrap and sort.
+  * Bump Standards-Version to 3.9.4.
+  * Update copyright fields.
+
+ -- Logan Rosen <logan@ubuntu.com>  Tue, 19 Nov 2013 23:47:50 -0500
+
+gm-notify (0.10.3-0ubuntu2) trusty; urgency=low
+
+  * debian/control: Add missing dependency on
+    python-glade2 (LP: # 863855).
+  * debian/copyright: Tweak to bring up to latest
+    DEP-5 spec.
+
+ -- Andrew Starr-Bochicchio <a.starr.b@gmail.com>  Sat, 01 Oct 2011 03:03:20 -0400
+
+gm-notify (0.10.3-0ubuntu1) maverick; urgency=low
+
+  * New upstream bug fix release.
+   - Fix CPU usage issue with subprocess.call. (LP: #616781)
+  * debian/patches/scripts-with-extensions-in-PATH:
+   - Drop, included upstream.
+  * debian/control: Bump Standards-Version to 3.9.1.
+
+ -- Andrew Starr-Bochicchio <a.starr.b@gmail.com>  Sat, 18 Sep 2010 15:41:02 -0400
+
+gm-notify (0.10.2-0ubuntu1) maverick; urgency=low
+
+  * Initial release (LP: #596313).
+
+ -- Andrew Starr-Bochicchio <a.starr.b@gmail.com>  Thu, 01 Jul 2010 11:28:14 -0400
+
 gm-notify (0.10.2-1~ppa1) lucid; urgency=low
 
   * Release 0.10.2 / see http://bleedingpaper.com/gm-notify

@@ -123,8 +123,8 @@ class CheckMail(Gio.Application):
             sys.exit(-1)
 
         keys = keyring.Keyring("GMail", "mail.google.com", "http")
-        if keys.has_credentials():
-            self.creds = keys.get_credentials()
+        if keys.has_any_credentials():
+            self.creds = keys.get_all_credentials()[0]
         else:
             print("Failed to get credentials")
             # Start gm-notify-config if no credentials are found
@@ -183,6 +183,10 @@ class CheckMail(Gio.Application):
     def has_source(self, label):
         '''Returns true if we have this label, or if we don't and it is in our
         mailboxes list, create it'''
+#         if label in MAILBOXES_NAMES:
+#             name = "{0} ({1})".format(MAILBOXES_NAMES[label], mailbox)
+#         else:
+#             name ="{0} ({1})".format(label, mailbox)
         if label == "inbox" and self.ignore_inbox:
             return False
         elif label in self.mailboxes:

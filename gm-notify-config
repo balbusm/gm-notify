@@ -27,16 +27,17 @@ import gettext
 import subprocess
 import shutil
 
-from gi.repository import Gio, Gtk
+from gi.repository import Gio, Gtk, Gdk
 
 from twisted.internet import gtk3reactor
 gtk3reactor.install()
 from twisted.internet import reactor
-from twisted.words.protocols.jabber import jid
 
 import gm_notify_keyring as keyring
-from gtalk import MailChecker
+from gm_notify_keyring import Credentials
 from settings_provider import SettingsProvider
+from account_config import AccountConfig
+ 
 
 _ = gettext.translation('gm-notify', fallback=True).ugettext
 
@@ -58,6 +59,13 @@ class Window(Gtk.Application):
         self.window = None
         self.connect("activate", self.on_activate)
 
+    def run(self, args):
+        self.register();
+        if self.get_is_remote():
+            self.activate()
+        else:
+            super(Window, self).run(args)
+
     def on_activate(self, app):
         '''Setup the application'''
         if self.window is not None:
@@ -69,65 +77,39 @@ class Window(Gtk.Application):
         self.keys = keyring.Keyring("GMail", "mail.google.com", "http")
         self.client = SettingsProvider()
         
-        if os.path.exists("gm-config.ui"):
-            builder_file = "gm-config.ui"
-        elif os.path.exists("/usr/local/share/gm-notify/gm-config.ui"):
-            builder_file = "/usr/local/share/gm-notify/gm-config.ui"
-        elif os.path.exists("/usr/share/gm-notify/gm-config.ui"):
-            builder_file = "/usr/share/gm-notify/gm-config.ui"
+        if os.path.exists("gm-list.ui"):
+            builder_file = "gm-list.ui"
+        elif os.path.exists("/usr/local/share/gm-notify/gm-list.ui"):
+            builder_file = "/usr/local/share/gm-notify/gm-list.ui"
+        elif os.path.exists("/usr/share/gm-notify/gm-list.ui"):
+            builder_file = "/usr/share/gm-notify/gm-list.ui"
+
 
         self.wTree = Gtk.Builder.new()
         self.wTree.add_from_file(builder_file)
         self.wTree.set_translation_domain("gm-notify")
         self.window = self.wTree.get_object("gmnotify_config_main")
         self.window.show_all()
+        self.window.connect("delete_event", self.terminate)
+        self.window.connect("window-state-event", self.on_update_accounts)
         self.add_window(self.window)
+        
+        self.creds = self.obtain_credentials(self.keys)
+        self.accounts = self.wTree.get_object("accounts")
+        self.update_accounts(self.accounts, self.creds)
 
+        self.accounts_treeview = self.wTree.get_object("accounts_treeview")
+        
         self.wTree.get_object("notebook_main").set_current_page(0)
         
-        self.input_user = self.wTree.get_object("input_user")
-        self.input_password = self.wTree.get_object("input_password")
-        self.image_credentials = self.wTree.get_object("image_credentials")
-        self.label_credentials = self.wTree.get_object("label_credentials")
-        self.button_apply = self.wTree.get_object("button_apply")
         
-        #####
-        # Init with stored values
-        #####
-        
-        # Credentials
-        if self.keys.has_credentials():
-            self.creds = self.keys.get_credentials()
-        else:
-            self.creds = ("", "")
-        self.input_user.set_text(self.creds[0])
-        self.input_password.set_text(self.creds[1])
-        
-        self.api = MailChecker("", "", self.client)
-        self.api.setOnAuthSucceeded(self.credentials_valid)
-        self.api.setOnAuthFailed(self.credentials_invalid)
-        self.api.setOnConnectionErrorCB(self.connection_error)
-        
-        self.check_credentials(None, None)
-        
-        # Sound
-        self.wTree.get_object("checkbutton_sound").set_active(self.client.retrieve_sound_enabled())
-        sound_file = self.client.retrieve_sound_file()
-        if sound_file:
-            self.wTree.get_object("fcbutton_sound").set_filename(sound_file)
-        self.on_checkbutton_sound_toggled(self.wTree.get_object("checkbutton_sound"))
-        
-        # ClickAction
-        if self.client.retrieve_use_mail_client():
-            self.wTree.get_object("radiobutton_openclient").set_active(True)
-        else:
-            self.wTree.get_object("radiobutton_openweb").set_active(True)
-        
-        # Mailboxes
-        self.wTree.get_object("checkbutton_inbox").set_active(self.client.retrieve_ignore_inbox())
-        mailboxes = self.client.retrieve_mailboxes()
-        self.wTree.get_object("entry_labels").set_text(", ".join(mailboxes))
+        self.add_button = self.wTree.get_object("add_button")
+        self.add_button.connect("clicked", self.on_add_account)
 
+        self.remove_button = self.wTree.get_object("remove_button")
+        self.remove_button.connect("clicked", self.on_remove_account)
+        
+        self.wTree.get_object("button_ok").connect("clicked", self.terminate)
         # Autorun
         if os.path.exists("data/gm-notify.desktop"):
             self.gm_notify_autostart_file = "data/gm-notify.desktop"
@@ -138,36 +120,42 @@ class Window(Gtk.Application):
         self.autostart_file = os.path.expanduser("~/.config/autostart/gm-notify.desktop")
         self.wTree.get_object("checkbutton_autostart").set_active(os.path.exists(self.autostart_file))
         
-        # Connect signals
-        self.wTree.get_object("button_close").connect("clicked", self.terminate)
-        self.button_apply.connect("clicked", self.save)
-        self.input_password.connect("focus-out-event", self.check_credentials)
-        self.wTree.get_object("checkbutton_sound").connect("toggled", self.on_checkbutton_sound_toggled)
+    def obtain_credentials(self, keys):
+        creds = []
+        
+        if keys.has_any_credentials():
+            creds = self.keys.get_all_credentials()
+        return creds
     
+    def update_accounts(self, accounts, creds):
+        accounts.clear()
+        for credentials in creds:
+            accounts.append((credentials.username,))
+    
+    def on_update_accounts(self, widget, event):
+        print("Event %s WindowState %s" % (str(event.type), str(event.new_window_state)))
+        if (event.type == Gdk.EventType.WINDOW_STATE
+            and event.new_window_state == Gdk.WindowState.FOCUSED):
+            self.update_accounts(self.accounts, self.creds)
+    
+    def on_add_account(self, widget):
+        account_config = AccountConfig(self.keys, self.client, Credentials())
+        window = account_config.init_window(self.window)
+    
+    def on_remove_account(self, widget):
+        tree_selection = self.accounts_treeview.get_selection()
+        accounts,iter = tree_selection.get_selected()
+        if iter is None:
+            return
+        
+        account = accounts[iter]
+        self.keys.delete_credentials(account[0])
+        accounts.remove(iter)
+        
+        
     def save(self, widget, data=None):
         '''saves the entered data and closes the app'''
-        # Credentials
-        self.keys.delete_credentials()
-        self.keys.set_credentials(self.input_user.get_text(),
-                                  self.input_password.get_text())
         
-        # Mailboxes
-        mailboxes = []
-        for label in self.wTree.get_object("entry_labels").get_text().split(","):
-            mailboxes.append(label.strip())
-        self.client.save_mailboxes(mailboxes)
-        self.client.save_ignore_inbox(self.wTree.get_object("checkbutton_inbox").get_active())
-        
-        # ClickAction
-        self.client.save_use_mail_client(self.wTree.get_object("radiobutton_openclient").get_active())
-
-        # Soundfile
-        if self.wTree.get_object("checkbutton_sound").get_active() and self.wTree.get_object("fcbutton_sound").get_filename():
-            self.client.save_sound_enabled(True)
-            self.client.save_sound_file(str(self.wTree.get_object("fcbutton_sound").get_filename()))
-        else:
-            self.client.save_sound_enabled(False)
-
         # Autorun
         if self.wTree.get_object("checkbutton_autostart").get_active():
             if not os.path.exists(self.autostart_file):
@@ -191,47 +179,9 @@ class Window(Gtk.Application):
         # Start gm-notify itself
         subprocess.Popen(get_executable_path("gm-notify"))
     
-    def terminate(self, widget):
+    def terminate(self, widget, event = None):
         reactor.stop()
     
-    def on_checkbutton_sound_toggled(self, widget):
-        self.wTree.get_object("fcbutton_sound").set_sensitive(self.wTree.get_object("checkbutton_sound").get_active())
-    
-    def check_credentials(self, widget, event, data=None):
-        '''check if the given credentials are valid'''
-        
-        self.button_apply.set_sensitive(False)
-        
-        # Change status text and disable input fields
-        if self.input_user.get_text() and self.input_password.get_text():
-            self.image_credentials.set_from_file("/usr/share/gm-notify/checking.gif")
-            self.label_credentials.set_text(_("checking..."))
-            self.input_user.set_sensitive(False)
-            self.input_password.set_sensitive(False)
-            
-            self.api.jid = jid.JID(self.input_user.get_text())
-            self.api.password = self.input_password.get_text()
-            self.api.connect()
-        return False
-    
-    def credentials_valid(self):
-        self.on_credentials_checked("gtk-yes", "Valid credentials", True)
-
-    def credentials_invalid(self):
-        self.on_credentials_checked("gtk-stop", "Invalid credentials")
-        
-    def connection_error(self, reason):
-        self.on_credentials_checked("gtk-stop", "Connection error")
-        
-    def on_credentials_checked(self, icon_name, text, valid = False):
-        self.image_credentials.set_from_icon_name(icon_name, Gtk.IconSize.MENU)
-        self.label_credentials.set_text(_(text))
-        self.input_user.set_sensitive(True)
-        self.input_password.set_sensitive(True)
-        self.button_apply.set_sensitive(valid)
-
-        self.api.die()
-
 t = Window()
 reactor.registerGApplication(t)
 reactor.run()
