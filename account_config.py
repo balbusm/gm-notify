@@ -66,6 +66,7 @@ class AccountConfig:
         self.wTree.get_object("button_close").connect("clicked", self.close)
         self.button_apply.connect("clicked", self.apply)
         self.input_password.connect("focus-out-event", self.check_credentials)
+        self.input_user.connect("focus-out-event", self.check_user)
         self.wTree.get_object("checkbutton_sound").connect("toggled", self.on_checkbutton_sound_toggled)
 
         #####
@@ -118,8 +119,8 @@ class AccountConfig:
     def save(self):
         '''saves the entered data and closes the app'''
         # Credentials
+        self.keys.delete_credentials(self.creds.username)
         user = self.input_user.get_text()
-        self.keys.delete_credentials(user)
         self.keys.set_credentials(user,
                                   self.input_password.get_text())
         
@@ -142,6 +143,14 @@ class AccountConfig:
 
     def on_checkbutton_sound_toggled(self, widget):
         self.wTree.get_object("fcbutton_sound").set_sensitive(self.wTree.get_object("checkbutton_sound").get_active())
+    
+    def check_user(self, widget, event):
+        user = self.input_user.get_text()
+        if not has_mail_postfix(user):
+            self.input_user.set_text(user + "@gmail.com")
+    
+    def has_mail_postfix(self, user):
+        return len(user) == 0 or "@" in user
     
     def check_credentials(self, widget, event, data=None):
         '''check if the given credentials are valid'''

@@ -94,11 +94,10 @@ class Window(Gtk.Application):
         self.window.connect("window-state-event", self.on_update_accounts)
         self.add_window(self.window)
         
-        self.creds = self.obtain_credentials(self.keys)
         self.accounts = self.wTree.get_object("accounts")
-        self.update_accounts(self.accounts, self.creds)
 
         self.accounts_treeview = self.wTree.get_object("accounts_treeview")
+        self.accounts_treeview.connect("row-activated", self.on_modify_account);
         
         self.wTree.get_object("notebook_main").set_current_page(0)
         
@@ -127,16 +126,24 @@ class Window(Gtk.Application):
             creds = self.keys.get_all_credentials()
         return creds
     
-    def update_accounts(self, accounts, creds):
+    def update_accounts(self, accounts, users):
         accounts.clear()
-        for credentials in creds:
-            accounts.append((credentials.username,))
+        for user in users:
+            accounts.append((user,))
     
     def on_update_accounts(self, widget, event):
         print("Event %s WindowState %s" % (str(event.type), str(event.new_window_state)))
         if (event.type == Gdk.EventType.WINDOW_STATE
             and event.new_window_state == Gdk.WindowState.FOCUSED):
-            self.update_accounts(self.accounts, self.creds)
+            self.update_accounts(self.accounts, self.keys.get_all_users())
+    
+    def on_modify_account(self, widget, path, column):
+        iter = self.accounts.get_iter(path)
+        account = self.accounts[iter]
+        username = account[0]
+        credentials = self.keys.get_credentials(username)
+        account_config = AccountConfig(self.keys, self.client, credentials)
+        window = account_config.init_window(self.window)
     
     def on_add_account(self, widget):
         account_config = AccountConfig(self.keys, self.client, Credentials())

@@ -49,6 +49,29 @@ class Keyring(object):
             credentials_list.append(Credentials(d["user"], item.secret))
         return credentials_list
     
+    def get_all_users(self):
+        attrs = attributes({"server": self._server, "protocol": self._protocol})
+        result, items = GnomeKeyring.find_items_sync(GnomeKeyring.ItemType.NETWORK_PASSWORD, attrs)
+        if len(items) == 0:
+            raise KeyringException("Credentials not found")
+        users_list = []
+        for item in items:
+            d = dict_from_attributes(item.attributes)
+            users_list.append(d["user"])
+        return users_list
+    
+    def get_credentials(self, user):
+        attrs = attributes({
+                            "user" : user,
+                            "server": self._server,
+                            "protocol": self._protocol
+                            })
+        result, items = GnomeKeyring.find_items_sync(GnomeKeyring.ItemType.NETWORK_PASSWORD, attrs)
+        if len(items) == 0:
+            raise KeyringException("Credentials not found")
+        d = dict_from_attributes(items[0].attributes)
+        return Credentials(d["user"], items[0].secret) 
+    
     def delete_all_credentials(self):
         attrs = attributes({"server": self._server, "protocol": self._protocol})
         result, items = GnomeKeyring.find_items_sync(GnomeKeyring.ItemType.NETWORK_PASSWORD, attrs)
