@@ -1,35 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
-  <schema path="/net/launchpad/gm-notify/" id="net.launchpad.gm-notify" gettext-domain="gm-notify">
-    <key type="b" name="play-sound">
-      <default>false</default>
-      <summary>Shall we play a sound on new mail?</summary>
-    </key>
-    <key type="b" name="ignore-inbox">
-      <default>false</default>
-      <summary>If true, there won't be notifications regarding just your inbox.</summary>
-    </key>
-    <key type="s" name="soundfile">
-      <default>''</default>
-      <summary>Path to the soundfile which should be played when a new mail arrives</summary>
-    </key>
-    <key type="as" name="mailboxes">
-      <default>[]</default>
-      <summary>List containing mailboxes to check</summary>
-    </key>
-    <key type="b" name="openclient">
-      <default>false</default>
-      <summary>Shall we open the default mail client or webinterface?</summary>
-    </key>
-    <key type="s" name="preferred-port">
-      <choices>
-        <choice value='443'/>
-        <!-- No longer valid port 
-        <choice value='5222'/>
-         -->
-      </choices>
-      <default>'443'</default>
-      <summary>Port used to connect to Google services</summary>
-    </key>
-  </schema>
+    <schema id="net.launchpad.gm-notify.account" gettext-domain="gm-notify">
+        <key type="b" name="play-sound">
+            <default>false</default>
+            <summary>Shall we play a sound on new mail?</summary>
+        </key>
+        <key type="b" name="ignore-inbox">
+            <default>false</default>
+            <summary>If true, there won't be notifications regarding
+                just your
+                inbox.
+            </summary>
+        </key>
+        <key type="s" name="soundfile">
+            <default>''</default>
+            <summary>Path to the soundfile which should be played when a
+                new mail
+                arrives
+            </summary>
+        </key>
+        <key type="as" name="mailboxes">
+            <default>[]</default>
+            <summary>List containing mailboxes to check</summary>
+        </key>
+        <key type="b" name="openclient">
+            <default>false</default>
+            <summary>Shall we open the default mail client or
+                webinterface?
+            </summary>
+        </key>
+        <key type="s" name="preferred-port">
+            <choices>
+                <choice value='443' />
+                <!-- No longer valid port <choice value='5222'/> -->
+            </choices>
+            <default>'443'</default>
+            <summary>Port used to connect to Google services</summary>
+        </key>
+    </schema>
 </schemalist>

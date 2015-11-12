@@ -27,7 +27,6 @@ from twisted.internet import reactor, task, error, ssl
 from twisted.internet.error import TimeoutError, ConnectionRefusedError
 
 from datetime import datetime
-import settings_provider
 
 GTALK_HOST = "talk.google.com"
 

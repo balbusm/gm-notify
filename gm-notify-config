@@ -35,8 +35,8 @@ from twisted.internet import reactor
 
 import gm_notify_keyring as keyring
 from gm_notify_keyring import Credentials
-from settings_provider import SettingsProvider
 from account_config import AccountConfig
+import account_settings_provider 
  
 
 _ = gettext.translation('gm-notify', fallback=True).ugettext
@@ -75,7 +75,6 @@ class Window(Gtk.Application):
         # GUI initialization
         #####
         self.keys = keyring.Keyring("GMail", "mail.google.com", "http")
-        self.client = SettingsProvider()
         
         if os.path.exists("gm-list.ui"):
             builder_file = "gm-list.ui"
@@ -142,11 +141,11 @@ class Window(Gtk.Application):
         account = self.accounts[iter]
         username = account[0]
         credentials = self.keys.get_credentials(username)
-        account_config = AccountConfig(self.keys, self.client, credentials)
+        account_config = AccountConfig(self.keys, credentials)
         window = account_config.init_window(self.window)
     
     def on_add_account(self, widget):
-        account_config = AccountConfig(self.keys, self.client, Credentials())
+        account_config = AccountConfig(self.keys, Credentials())
         window = account_config.init_window(self.window)
     
     def on_remove_account(self, widget):
@@ -156,9 +155,12 @@ class Window(Gtk.Application):
             return
         
         account = accounts[iter]
-        self.keys.delete_credentials(account[0])
-        accounts.remove(iter)
+        username = account[0]
+        settings_provider = account_settings_provider.create_settings_provider(username)
+        settings_provider.remove_all_settings()
+        self.keys.delete_credentials(username)
         
+        accounts.remove(iter)
         
     def save(self, widget, data=None):
         '''saves the entered data and closes the app'''

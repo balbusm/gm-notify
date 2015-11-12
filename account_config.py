@@ -26,13 +26,13 @@ from gi.repository import Gio, Gtk
 from twisted.words.protocols.jabber import jid
 
 from gtalk import MailChecker
+import account_settings_provider
 
 _ = gettext.translation('gm-notify', fallback=True).ugettext
 
 class AccountConfig:
-    def __init__(self, keys, client, creds):
+    def __init__(self, keys, creds):
         self.keys = keys
-        self.client = client
         self.creds = creds
     
     def init_window(self, parent):
@@ -75,10 +75,15 @@ class AccountConfig:
         
         # Credentials
 
-        self.input_user.set_text(self.creds.username)
+        settings_provider = account_settings_provider.create_settings_provider(self.creds.username)
+
+        if self.creds.username:
+            self.input_user.set_text(self.creds.username)
+            self.input_user.set_sensitive(False)
+            
         self.input_password.set_text(self.creds.password)
          
-        self.api = MailChecker("", "", self.client)
+        self.api = MailChecker("", "", settings_provider)
         self.api.setOnAuthSucceeded(self.credentials_valid)
         self.api.setOnAuthFailed(self.credentials_invalid)
         self.api.setOnConnectionErrorCB(self.connection_error)
@@ -86,21 +91,21 @@ class AccountConfig:
         self.check_credentials(None, None)
         
         # Sound
-        self.wTree.get_object("checkbutton_sound").set_active(self.client.retrieve_sound_enabled())
-        sound_file = self.client.retrieve_sound_file()
+        self.wTree.get_object("checkbutton_sound").set_active(settings_provider.retrieve_sound_enabled())
+        sound_file = settings_provider.retrieve_sound_file()
         if sound_file:
             self.wTree.get_object("fcbutton_sound").set_filename(sound_file)
         self.on_checkbutton_sound_toggled(self.wTree.get_object("checkbutton_sound"))
          
         # ClickAction
-        if self.client.retrieve_use_mail_client():
+        if settings_provider.retrieve_use_mail_client():
             self.wTree.get_object("radiobutton_openclient").set_active(True)
         else:
             self.wTree.get_object("radiobutton_openweb").set_active(True)
          
         # Mailboxes
-        self.wTree.get_object("checkbutton_inbox").set_active(self.client.retrieve_ignore_inbox())
-        mailboxes = self.client.retrieve_mailboxes()
+        self.wTree.get_object("checkbutton_inbox").set_active(settings_provider.retrieve_ignore_inbox())
+        mailboxes = settings_provider.retrieve_mailboxes()
         self.wTree.get_object("entry_labels").set_text(", ".join(mailboxes))
 
         
@@ -120,33 +125,35 @@ class AccountConfig:
         '''saves the entered data and closes the app'''
         # Credentials
         self.keys.delete_credentials(self.creds.username)
+        
         user = self.input_user.get_text()
         self.keys.set_credentials(user,
                                   self.input_password.get_text())
         
+        settings_provider = account_settings_provider.create_settings_provider(user)
         # Mailboxes
         mailboxes = []
         for label in self.wTree.get_object("entry_labels").get_text().split(","):
             mailboxes.append(label.strip())
-        self.client.save_mailboxes(mailboxes)
-        self.client.save_ignore_inbox(self.wTree.get_object("checkbutton_inbox").get_active())
+        settings_provider.save_mailboxes(mailboxes)
+        settings_provider.save_ignore_inbox(self.wTree.get_object("checkbutton_inbox").get_active())
         
         # ClickAction
-        self.client.save_use_mail_client(self.wTree.get_object("radiobutton_openclient").get_active())
+        settings_provider.save_use_mail_client(self.wTree.get_object("radiobutton_openclient").get_active())
 
         # Soundfile
         if self.wTree.get_object("checkbutton_sound").get_active() and self.wTree.get_object("fcbutton_sound").get_filename():
-            self.client.save_sound_enabled(True)
-            self.client.save_sound_file(str(self.wTree.get_object("fcbutton_sound").get_filename()))
+            settings_provider.save_sound_enabled(True)
+            settings_provider.save_sound_file(str(self.wTree.get_object("fcbutton_sound").get_filename()))
         else:
-            self.client.save_sound_enabled(False)
+            settings_provider.save_sound_enabled(False)
 
     def on_checkbutton_sound_toggled(self, widget):
         self.wTree.get_object("fcbutton_sound").set_sensitive(self.wTree.get_object("checkbutton_sound").get_active())
     
     def check_user(self, widget, event):
         user = self.input_user.get_text()
-        if not has_mail_postfix(user):
+        if not self.has_mail_postfix(user):
             self.input_user.set_text(user + "@gmail.com")
     
     def has_mail_postfix(self, user):
@@ -181,7 +188,7 @@ class AccountConfig:
     def on_credentials_checked(self, icon_name, text, valid = False):
         self.image_credentials.set_from_icon_name(icon_name, Gtk.IconSize.MENU)
         self.label_credentials.set_text(_(text))
-        self.input_user.set_sensitive(True)
+        self.input_user.set_sensitive(not bool(self.creds.username))
         self.input_password.set_sensitive(True)
         self.button_apply.set_sensitive(valid)
 
