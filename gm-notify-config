@@ -118,23 +118,18 @@ class Window(Gtk.Application):
         self.autostart_file = os.path.expanduser("~/.config/autostart/gm-notify.desktop")
         self.wTree.get_object("checkbutton_autostart").set_active(os.path.exists(self.autostart_file))
         
-    def obtain_credentials(self, keys):
-        creds = []
-        
-        if keys.has_any_credentials():
-            creds = self.keys.get_all_credentials()
-        return creds
-    
-    def update_accounts(self, accounts, users):
+    def update_accounts(self, accounts, keys):
         accounts.clear()
-        for user in users:
+        if not self.keys.has_any_users():
+            return
+        for user in keys.get_all_users():
             accounts.append((user,))
     
     def on_update_accounts(self, widget, event):
         print("Event %s WindowState %s" % (str(event.type), str(event.new_window_state)))
         if (event.type == Gdk.EventType.WINDOW_STATE
             and event.new_window_state == Gdk.WindowState.FOCUSED):
-            self.update_accounts(self.accounts, self.keys.get_all_users())
+            self.update_accounts(self.accounts, self.keys)
     
     def on_modify_account(self, widget, path, column):
         iter = self.accounts.get_iter(path)

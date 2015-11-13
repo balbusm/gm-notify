@@ -105,8 +105,8 @@ class AccountConfig:
          
         # Mailboxes
         self.wTree.get_object("checkbutton_inbox").set_active(settings_provider.retrieve_ignore_inbox())
-        mailboxes = settings_provider.retrieve_mailboxes()
-        self.wTree.get_object("entry_labels").set_text(", ".join(mailboxes))
+        labels = settings_provider.retrieve_labels()
+        self.wTree.get_object("entry_labels").set_text(", ".join(labels))
 
         
         
@@ -132,10 +132,10 @@ class AccountConfig:
         
         settings_provider = account_settings_provider.create_settings_provider(user)
         # Mailboxes
-        mailboxes = []
+        labels = []
         for label in self.wTree.get_object("entry_labels").get_text().split(","):
-            mailboxes.append(label.strip())
-        settings_provider.save_mailboxes(mailboxes)
+            labels.append(label.strip())
+        settings_provider.save_labels(labels)
         settings_provider.save_ignore_inbox(self.wTree.get_object("checkbutton_inbox").get_active())
         
         # ClickAction
@@ -176,13 +176,13 @@ class AccountConfig:
             self.api.connect()
         return False
     
-    def credentials_valid(self):
+    def credentials_valid(self, username):
         self.on_credentials_checked("gtk-yes", "Valid credentials", True)
 
-    def credentials_invalid(self):
+    def credentials_invalid(self, username):
         self.on_credentials_checked("gtk-stop", "Invalid credentials")
         
-    def connection_error(self, reason):
+    def connection_error(self, username, reason):
         self.on_credentials_checked("gtk-stop", "Connection error")
         
     def on_credentials_checked(self, icon_name, text, valid = False):

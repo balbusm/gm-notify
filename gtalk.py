@@ -60,7 +60,7 @@ class GTalkClientFactory(xmlstream.XmlStreamFactory):
             return
         
         DEBUG("clientConnectionLost: Reconnecting with the same settings (port %d)" % connector.port)
-        if self.cb_connection_error : self.cb_connection_error(reason)
+        if self.cb_connection_error : self.cb_connection_error(self.jid.full(), reason)
         self.connection_failed = False
         self.__resetPortsToCheck()
         # reconnect on the same port as it used to work
@@ -78,7 +78,7 @@ class GTalkClientFactory(xmlstream.XmlStreamFactory):
             xmlstream.XmlStreamFactory.clientConnectionFailed(self, connector, reason)
         else:
             DEBUG("clientConnectionFailed: Connection failed");
-            if self.cb_connection_error : self.cb_connection_error(reason)
+            if self.cb_connection_error : self.cb_connection_error(self.jid.full(), reason)
             self.connection_failed = True
     
     def __shouldTryDifferentPorts(self, reason):
@@ -224,12 +224,12 @@ class MailChecker():
     
     def init_failedCB(self, xmlstream):
         DEBUG("init_failedCB")
-        if self.cb_auth_failed: self.cb_auth_failed()
+        if self.cb_auth_failed: self.cb_auth_failed(self.jid.full())
         self.disconnectCB(xmlstream)
     
     def authenticationCB(self, xmlstream):
         DEBUG("authenticationCB")
-        if self.cb_auth_succeeded: self.cb_auth_succeeded()
+        if self.cb_auth_succeeded: self.cb_auth_succeeded(self.jid.full())
         self.factory.resetDelay()
         
         # We set the usersetting mail-notification
@@ -275,8 +275,8 @@ class MailChecker():
             DEBUG("queryLabel: end of iteration")
             self.labels_iter = iter(self.labels)
             self.xmlstream.addObserver("/iq", self.gotNewMail)
-            if self.cb_count: self.cb_count(self.count)
-            if self.mails and self.cb_new: self.cb_new(self.mails)
+            if self.cb_count: self.cb_count(self.jid.full(), self.count)
+            if self.mails and self.cb_new: self.cb_new(self.jid.full(), self.mails)
             self.mails = []
             self.ready_for_query_state = True
     
@@ -355,7 +355,7 @@ class MailChecker():
                             mail['snippet'] = unicode(child)
                     mails.append(mail)
                 
-                self.cb_new(mails)
+                self.cb_new(self.jid.full(), mails)
         
         self.ready_for_query_state = True
         if iq: self.queryInbox()
@@ -369,7 +369,7 @@ class MailChecker():
     def connectedCB(self, xmlstream):
         self.xmlstream = xmlstream
         self.disconnected = False
-        if self.cb_connected: self.cb_connected()
+        if self.cb_connected: self.cb_connected(self.jid.full())
         
         if _DEBUG:
             xmlstream.rawDataInFn = self.rawDataIn

@@ -54,16 +54,15 @@ class AccountSettingsProvider:
         return self.client.get_boolean("ignore-inbox")
 
     
-    def retrieve_mailboxes(self):
-        return self.client.get_strv("mailboxes")
+    def retrieve_labels(self):
+        return self.client.get_strv("labels")
 
     
     def retrieve_use_mail_client(self):
         return self.client.get_boolean("openclient")
 
-    
-    def save_mailboxes(self, mailboxes):
-        self.client.set_strv("mailboxes", mailboxes)
+    def save_labels(self, labels):
+        self.client.set_strv("labels", labels)
 
     
     def save_ignore_inbox(self, ignore_inbox):
@@ -104,13 +103,13 @@ class DefaultSettingsProvider:
     def retrieve_ignore_inbox(self):
         return False
 
-    def retrieve_mailboxes(self):
+    def retrieve_labels(self):
         return ''
     
     def retrieve_use_mail_client(self):
         return False
     
-    def save_mailboxes(self, mailboxes):
+    def save_labels(self, mailboxes):
         raise NotImplementedError("Saving not supported") 
 
     

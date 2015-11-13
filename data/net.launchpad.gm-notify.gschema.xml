@@ -19,9 +19,9 @@
                 arrives
             </summary>
         </key>
-        <key type="as" name="mailboxes">
+        <key type="as" name="labels">
             <default>[]</default>
-            <summary>List containing mailboxes to check</summary>
+            <summary>List containing labels to check</summary>
         </key>
         <key type="b" name="openclient">
             <default>false</default>
