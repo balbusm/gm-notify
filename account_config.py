@@ -87,9 +87,9 @@ class AccountConfig:
         self.api.setOnAuthSucceeded(self.credentials_valid)
         self.api.setOnAuthFailed(self.credentials_invalid)
         self.api.setOnConnectionErrorCB(self.connection_error)
-         
+
         self.check_credentials(None, None)
-        
+
         # Sound
         self.wTree.get_object("checkbutton_sound").set_active(settings_provider.retrieve_sound_enabled())
         sound_file = settings_provider.retrieve_sound_file()
@@ -108,8 +108,6 @@ class AccountConfig:
         labels = settings_provider.retrieve_labels()
         self.wTree.get_object("entry_labels").set_text(", ".join(labels))
 
-        
-        
         return self.window
     
     def close(self, widget = None, event = None):
