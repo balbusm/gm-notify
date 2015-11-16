@@ -177,7 +177,7 @@ class AccountConfig:
     def credentials_valid(self, username):
         self.on_credentials_checked("gtk-yes", "Valid credentials", True)
 
-    def credentials_invalid(self, username):
+    def credentials_invalid(self, username, reason):
         self.on_credentials_checked("gtk-stop", "Invalid credentials")
         
     def connection_error(self, username, reason):

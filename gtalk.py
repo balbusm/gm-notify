@@ -46,6 +46,7 @@ class GTalkClientFactory(xmlstream.XmlStreamFactory):
         xmlstream.XmlStreamFactory.__init__(self, a)
         self.addBootstrap(xmlstream.STREAM_CONNECTED_EVENT, self.clientConnected)
         
+        self.jid = jid
         self.reconnect = True
         self.connection_failed = False
         self.cb_connection_error = None
@@ -224,7 +225,7 @@ class MailChecker():
     
     def init_failedCB(self, xmlstream):
         DEBUG("init_failedCB")
-        if self.cb_auth_failed: self.cb_auth_failed(self.jid.full())
+        if self.cb_auth_failed: self.cb_auth_failed(self.jid.full(), xmlstream.value)
         self.disconnectCB(xmlstream)
     
     def authenticationCB(self, xmlstream):

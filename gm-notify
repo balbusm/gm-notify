@@ -44,6 +44,8 @@ MAILBOXES_NAMES = { "inbox": _("Inbox") }
 
 MAILBOXES_URLS = {  "inbox": "" }
 
+GMAIL_DOMAINS = ['gmail.com','googlemail.com']
+
 EMAIL_RETRIEVAL_ERROR = "--retrieval-error"
 
 class PathNotFound(Exception): pass
@@ -151,15 +153,17 @@ class CheckMail(Gio.Application):
         self._m_menu.register()
         self._m_menu.connect("activate-source", self.source_clicked)
 
+        self.accounts = self.init_accounts(creds)
 
-        # check if we use Google Apps to start the correct webinterface
-        gmail_domains = ['gmail.com','googlemail.com']
-        self.accounts = {}
+
+    def init_accounts(self, creds):
+        accounts = {}
         for credentails in creds:
             account = Account()
             account.username = credentails.username
             local_jid = jid.JID(account.username)
-            if local_jid.host not in gmail_domains:
+            # check if we use Google Apps to start the correct webinterface
+            if local_jid.host not in GMAIL_DOMAINS:
                 account.domain = local_jid.host
             
             client = account_settings_provider.create_settings_provider(account.username)
@@ -183,8 +187,9 @@ class CheckMail(Gio.Application):
             account.checker.setOnAuthSucceeded(self.checker_auth_succeeded)
             account.checker.connect()
             
-            self.accounts[credentails.username] = account
-        
+            accounts[credentails.username] = account
+        return accounts
+
     def indicator_clicked(self):
         '''called when "Google Mail" is clicked in indicator-messages and
         performs a Mail Check'''
@@ -290,7 +295,7 @@ class CheckMail(Gio.Application):
             text += "- " + title + "\n"
             
         if text:
-            self.show_notification(_("Incoming message"), text.strip("\n"))
+            self.show_notification("{0}".format(username), text.strip("\n"))
             play_sound(self.accounts[username].soundfile)
     
     def source_clicked(self, app, source_id):
@@ -300,15 +305,6 @@ class CheckMail(Gio.Application):
         if label == EMAIL_RETRIEVAL_ERROR:
             return
         account = self.accounts[username]
-        if account.domain:
-            url = "https://mail.google.com/a/"+account.domain+"/"
-        else:
-            url = "https://mail.google.com/mail/"
-        
-        try:
-            url += "#%s" % MAILBOXES_URLS[label]
-        except KeyError:
-            url += "#label/%s" % label
         
         # Open mail client
         if account.use_mail_client:
@@ -318,30 +314,53 @@ class CheckMail(Gio.Application):
             except:
                 pass
         else:
+            url = self.prep_url(account, label)
             webbrowser.open(url)
 
+    def prep_url(self, account, label):
+        url_domain = self.prep_url_domain(account.domain)
+        url_label = self.prep_url_label(label)
+
+        return ("https://accounts.google.com/AccountChooser?"
+                "Email={0}"
+                "&continue=https%3A%2F%2Fmail.google.com%2Fmail%2F{1}"
+                "&service=mail"
+                "&hd={2}").format(account.username, url_label, url_domain)
+
+    def prep_url_label(self, label):
+        if label in MAILBOXES_URLS:
+            return "%23{0}".format(MAILBOXES_URLS[label])
+        else:
+            return "%23label%2F{0}".format(label)
+
+    def prep_url_domain(self, domain):
+        if domain:
+            return domain
+        else:
+            return "default"
+    
     def checker_auth_succeeded(self, username):
         error_label = self.compose_id(username, EMAIL_RETRIEVAL_ERROR)
         self._m_menu.remove_source(error_label)
     
     def checker_connection_error(self, username, error): 
-        self.check_failed(username, error)
+        self.check_failed(username, _("Cannot retrieve emails"))
     
     def checker_auth_failed(self, username, error):
-        self.check_failed(username, error)
+        self.check_failed(username, _("Authentication failed"))
     
     def check_failed(self, username, feed):
         
-        for label in self._counts:
-            local_username, local_label = self.decompose_id(self._counts)
+        for id in self._counts:
+            local_username, local_label = self.decompose_id(id)
             if local_username == username:
-                self._m_menu.remove_source(label)
+                self._m_menu.remove_source(id)
             
         error_id = self.compose_id(username, EMAIL_RETRIEVAL_ERROR)
         if self._m_menu.has_source(error_id):
             return
-        self._m_menu.append_source(error_id, None, username + " - Cannot retrieve emails")
-        n = Notify.Notification.new("Error", username + " - Cannot retrieve emails", "messagebox_critical")
+        self._m_menu.append_source(error_id, None, username + _(" - Cannot retrieve emails"))
+        n = Notify.Notification.new(_("Error for ") + username, feed, "messagebox_critical")
         n.show()
     
     def show_notification(self, title, message):
@@ -354,7 +373,9 @@ class CheckMail(Gio.Application):
         return n
     
     def shutdown(self):
-        if self.checker : self.checker.die()
+        if self.accounts: 
+            for username, account in self.accounts.items():
+                if account.checker : account.checker.die()
     
 cm = CheckMail()
 reactor.registerGApplication(cm)
