@@ -41,14 +41,8 @@ class AccountSettingsProvider:
     def retrieve_sound_enabled(self):
         return self.client.get_boolean("play-sound")
     
-    def retrieve_ports_range(self):
-        port_range = self.client.get_property("settings-schema").get_key("preferred-port").get_range()
-        # cast array to int
-        result = list(map(int, port_range[1]))
-        return result
-    
     def retrieve_preferred_port(self):
-        return int(self.client.get_string("preferred-port"))
+        return self.client.get_int("preferred-port")
 
     def retrieve_ignore_inbox(self):
         return self.client.get_boolean("ignore-inbox")
@@ -82,7 +76,7 @@ class AccountSettingsProvider:
 
     
     def save_preferred_port(self, preferred_port):
-        self.client.set_string("preferred-port", str(preferred_port))
+        self.client.set_int("preferred-port", preferred_port)
         
     def remove_all_settings(self):
         self.client.reset("")
@@ -93,9 +87,6 @@ class DefaultSettingsProvider:
 
     def retrieve_sound_enabled(self):
         return False
-    
-    def retrieve_ports_range(self):
-        return [443]
     
     def retrieve_preferred_port(self):
         return 443

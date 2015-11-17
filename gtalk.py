@@ -41,7 +41,7 @@ def DEBUG(msg):
 
 class GTalkClientFactory(xmlstream.XmlStreamFactory):
     
-    def __init__(self, jid, password, ports, settings_provider):
+    def __init__(self, jid, password, settings_provider):
         a = client.XMPPAuthenticator(jid, password)
         xmlstream.XmlStreamFactory.__init__(self, a)
         self.addBootstrap(xmlstream.STREAM_CONNECTED_EVENT, self.clientConnected)
@@ -51,9 +51,7 @@ class GTalkClientFactory(xmlstream.XmlStreamFactory):
         self.connection_failed = False
         self.cb_connection_error = None
         self.settings_provider = settings_provider
-        self.ports = self.__rearrange_ports(ports, settings_provider.retrieve_preferred_port())
-        self.current_port_ind = 0
-        self.__resetPortsToCheck()
+        self.port = self.settings_provider.retrieve_preferred_port()
     
     def clientConnectionLost(self, connector, reason):
         DEBUG("clientConnectionLost %s" % str(reason))
@@ -63,7 +61,6 @@ class GTalkClientFactory(xmlstream.XmlStreamFactory):
         DEBUG("clientConnectionLost: Reconnecting with the same settings (port %d)" % connector.port)
         if self.cb_connection_error : self.cb_connection_error(self.jid.full(), reason)
         self.connection_failed = False
-        self.__resetPortsToCheck()
         # reconnect on the same port as it used to work
         xmlstream.XmlStreamFactory.clientConnectionLost(self, connector, reason)
          
@@ -72,62 +69,28 @@ class GTalkClientFactory(xmlstream.XmlStreamFactory):
         if not self.reconnect:
             return
         
-        if self.__shouldTryDifferentPorts(reason):
-            self.connection_failed = False
-            connector.port = self.__getNextPortToCheck()
-            DEBUG("clientConnectionFailed: Reconnecting on port %d" % connector.port)
-            xmlstream.XmlStreamFactory.clientConnectionFailed(self, connector, reason)
-        else:
-            DEBUG("clientConnectionFailed: Connection failed");
-            if self.cb_connection_error : self.cb_connection_error(self.jid.full(), reason)
-            self.connection_failed = True
-    
-    def __shouldTryDifferentPorts(self, reason):
-        # TimeoutError or ConnectionRefusedError may indicate blocked port 
-        return self.__hasPortsToCheck() and reason.check(TimeoutError, ConnectionRefusedError) is not None
+        DEBUG("clientConnectionFailed: Connection failed");
+        if self.cb_connection_error : self.cb_connection_error(self.jid.full(), reason)
+        self.connection_failed = True
     
     def clientConnected(self, xmlstream):
         DEBUG("clientConnected") 
         self.connection_failed = False
-        self.settings_provider.save_preferred_port(self.getCurrentPort())
-        self.ports = self.__rearrange_ports(self.ports, self.getCurrentPort())
-        self.__resetPortsToCheck()
     
-    def __hasPortsToCheck(self):
-        return self.ports_to_check > 0
-    
-    def __resetPortsToCheck(self):
-        self.ports_to_check = len(self.ports)
-    
-    def __getNextPortToCheck(self):
-        self.ports_to_check -= 1
-        return self.__nextPort()
-          
     def getCurrentPort(self):
-        return self.ports[self.current_port_ind]
+        return self.port
     
     def hasConnectionFailed(self):
         return self.connection_failed
     
-    def __nextPort(self):
-        self.current_port_ind += 1
-        if len(self.ports) <= self.current_port_ind:
-            self.current_port_ind = 0
-        return self.ports[self.current_port_ind]
-    
     def setOnConnectionErrorCB(self, cb_connection_error):
         self.cb_connection_error = cb_connection_error
-        
-    def __rearrange_ports(self, ports, preferred_port):
-        ports.remove(preferred_port)
-        ports.insert(0, preferred_port)
-        return ports
+
 
 class MailChecker():
     def __init__(self, jid, password, settings_provider, labels=[], cb_new=None, cb_count=None):
         self.host = GTALK_HOST
         self.settings_provider = settings_provider
-        self.ports = settings_provider.retrieve_ports_range() 
         self.jid = jid
         self.password = password
         self.cb_new = cb_new
@@ -174,7 +137,7 @@ class MailChecker():
         self.running = False
     
     def connect(self):
-        self.factory = GTalkClientFactory(self.jid, self.password, self.ports, self.settings_provider)
+        self.factory = GTalkClientFactory(self.jid, self.password, self.settings_provider)
         self.factory.setOnConnectionErrorCB(self.cb_connection_error)
         self.factory.addBootstrap(xmlstream.STREAM_END_EVENT, self.disconnectCB)
         self.factory.addBootstrap(xmlstream.STREAM_ERROR_EVENT, self.disconnectCB)
@@ -222,7 +185,7 @@ class MailChecker():
         DEBUG("disconnected")
         self.ready_for_query_state = False
         self.disconnected = True
-    
+
     def init_failedCB(self, xmlstream):
         DEBUG("init_failedCB")
         if self.cb_auth_failed: self.cb_auth_failed(self.jid.full(), xmlstream.value)
@@ -253,6 +216,7 @@ class MailChecker():
             return
         if self.disconnected:
             DEBUG("queryInbox: disconnected")
+            self.factory.reconnect = True
             self.connector.connect()
             return
         self.ready_for_query_state = False

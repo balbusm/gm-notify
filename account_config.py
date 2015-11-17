@@ -138,7 +138,10 @@ class AccountConfig:
         
         # ClickAction
         settings_provider.save_use_mail_client(self.wTree.get_object("radiobutton_openclient").get_active())
-
+        
+        # Port
+        settings_provider.save_preferred_port(settings_provider.retrieve_preferred_port())
+        
         # Soundfile
         if self.wTree.get_object("checkbutton_sound").get_active() and self.wTree.get_object("fcbutton_sound").get_filename():
             settings_provider.save_sound_enabled(True)
