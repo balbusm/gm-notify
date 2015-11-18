@@ -49,39 +49,41 @@ class GTalkClientFactory(xmlstream.XmlStreamFactory):
         self.jid = jid
         self.reconnect = True
         self.connection_failed = False
+        self.connection_lost = False
         self.cb_connection_error = None
         self.settings_provider = settings_provider
         self.port = self.settings_provider.retrieve_preferred_port()
     
     def clientConnectionLost(self, connector, reason):
         DEBUG("clientConnectionLost %s" % str(reason))
+        self.connection_lost = True
         if not self.reconnect:
             return
         
         DEBUG("clientConnectionLost: Reconnecting with the same settings (port %d)" % connector.port)
         if self.cb_connection_error : self.cb_connection_error(self.jid.full(), reason)
-        self.connection_failed = False
         # reconnect on the same port as it used to work
         xmlstream.XmlStreamFactory.clientConnectionLost(self, connector, reason)
          
     def clientConnectionFailed(self, connector, reason):
         DEBUG("clientConnectionFailed %s on port: %d reconnecting: %s" % (str(reason), connector.port, str(self.reconnect)))
+        self.connection_failed = True
         if not self.reconnect:
             return
         
         DEBUG("clientConnectionFailed: Connection failed");
         if self.cb_connection_error : self.cb_connection_error(self.jid.full(), reason)
-        self.connection_failed = True
     
     def clientConnected(self, xmlstream):
         DEBUG("clientConnected") 
         self.connection_failed = False
+        self.connection_lost = False
     
     def getCurrentPort(self):
         return self.port
     
-    def hasConnectionFailed(self):
-        return self.connection_failed
+    def hasConnectionFailedOrLost(self):
+        return self.connection_failed or self.connection_lost
     
     def setOnConnectionErrorCB(self, cb_connection_error):
         self.cb_connection_error = cb_connection_error
@@ -184,6 +186,7 @@ class MailChecker():
     def disconnectCB(self, xmlstream):
         DEBUG("disconnected")
         self.ready_for_query_state = False
+        self.factory.reconnect = False
         self.disconnected = True
 
     def init_failedCB(self, xmlstream):
@@ -210,8 +213,8 @@ class MailChecker():
     
     def queryInbox(self):
         DEBUG("queryInbox")
-        if not(self.ready_for_query_state or self.factory.hasConnectionFailed()):
-            DEBUG("queryInbox: ready for query: %s connection_failed: %s" % (str(self.ready_for_query_state), str(self.factory.hasConnectionFailed())))
+        if not(self.ready_for_query_state or self.factory.hasConnectionFailedOrLost()):
+            DEBUG("queryInbox: ready for query: %s connection_failed_or_lost: %s" % (str(self.ready_for_query_state), str(self.factory.hasConnectionFailedOrLost())))
             DEBUG("queryInbox: skipping query request")
             return
         if self.disconnected:
