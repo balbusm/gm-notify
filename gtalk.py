@@ -329,10 +329,10 @@ class MailChecker():
         if iq: self.queryInbox()
     
     def rawDataIn(self, buf):
-        print(u"> %s" % unicode(buf, "utf-8"))
+        print("> %s" % buf)
     
     def rawDataOut(self, buf):
-        print(u"< %s" % unicode(buf, "utf-8"))
+        print("< %s" % buf)
     
     def connectedCB(self, xmlstream):
         self.xmlstream = xmlstream
