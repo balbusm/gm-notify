@@ -17,11 +17,11 @@ Provides: ${python:Provides}
 Depends: python-gconf,
         python-glade2,
         python-gnomekeyring,
-        python-gst-1.0,
         python-gtk2,
         python-indicate,
         python-notify,
         python-twisted-words,
+        gir1.2-gstreamer-1.0,
         ${misc:Depends},
         ${python:Depends},
         ${shlibs:Depends}
