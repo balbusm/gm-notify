@@ -27,7 +27,9 @@ import subprocess
 import gettext
 import webbrowser
 
-from gi.repository import Gio, GLib, MessagingMenu, Notify
+import gi
+gi.require_version('Gst', '1.0')
+from gi.repository import Gio, GLib, Gst, MessagingMenu, Notify
 
 from twisted.internet import gireactor
 gireactor.install()
@@ -59,30 +61,6 @@ def get_executable_path(name):
     if os.path.exists(path) and os.access(path, os.X_OK): return path
     raise PathNotFound("%s not found" % name)
 
-def play_sound(name):
-    '''Spawns a canberra-gtk-play process to play the sound'''
-    if name is None:
-        return
-    player_path = "/usr/bin/canberra-gtk-play"
-    # Not installed?
-    if not os.path.exists(player_path):
-        return
-    command = [player_path]
-    # File exists, so use the file flag
-    if os.path.exists(name):
-        command.extend(["-f", name])
-    # Assume it is a sound id
-    else:
-        command.extend(["-i", name])
-    try:
-        result = GLib.spawn_async(command)
-    except:
-        return
-    # Does nothing but the documentation says to do it anyway
-    if len(result) > 0:
-        GLib.spawn_close_pid(result[0])
-
-
 class Account:
     def __init__(self):
         self.username = None
@@ -100,9 +78,24 @@ class CheckMail(Gio.Application):
         super(CheckMail, self).__init__(application_id="net.launchpad.gm-notify",
             flags=Gio.ApplicationFlags.FLAGS_NONE)
 
+        self.player = None
         self._has_activated = False
         self._counts = {}
         self.connect("activate", self.on_activate)
+
+    def play_sound(self, name):
+        '''Uses GSound to play the music'''
+        if name is None:
+            return
+        
+        if not self.player: 
+            Gst.init()
+            self.player = Gst.ElementFactory.make("playbin", "player")
+
+        self.player.set_property("uri", "file://" + name)
+        result = self.player.set_state(Gst.State.PLAYING)
+        if result == Gst.StateChangeReturn.FAILURE:
+            print("Unable to play " + name)
 
     def on_remote_quit(self, action, args):
         '''Stops the application when the "remote-quit" action is activated'''
@@ -296,7 +289,7 @@ class CheckMail(Gio.Application):
             
         if text:
             self.show_notification("{0}".format(username), text.strip("\n"))
-            play_sound(self.accounts[username].soundfile)
+            self.play_sound(self.accounts[username].soundfile)
     
     def source_clicked(self, app, source_id):
         '''called when a label is clicked in the indicator-applet and opens the corresponding gmail page'''
