@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# gtalk.py v0.10.3
+# gtalk.py v1.0
 # Google Talk mail notification client library
 #
 # Copyright (c) 2009-2010, Alexander Hungenberg <alexander.hungenberg@gmail.com>
+# Copyright (c) 2015, Mateusz Balbus <balbusm@gmail.com>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
