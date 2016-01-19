@@ -1,14 +1,6 @@
 #!/usr/bin/make -f
 
-DEB_PYTHON_SYSTEM := pycentral
-export DH_PYCENTRAL=include-links
+export PYBUILD_NAME=gm-notify
+%:
+	dh $@ --with python2 --buildsystem=pybuild
 
-include /usr/share/cdbs/1/rules/debhelper.mk
-include /usr/share/cdbs/1/class/python-distutils.mk
-
-DEB_DH_INSTALL_SOURCEDIR := debian/tmp
-DEB_PYTHON_INSTALL_ARGS_ALL := --no-compile --install-layout=deb
-
-# Add here any variable or target overrides you need.
-binary-post-install/gm-notify::
-	dh_gconf -p$(cdbs_curpkg) $(DEB_DH_GCONF_ARGS)

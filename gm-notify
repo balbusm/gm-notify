@@ -1,10 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# gm-notify v0.10.3
+# gm-notify v1.0
 # a simple and lightweight GMail-Notifier for ubuntu and notify-osd
 #
 # Copyright (c) 2009-2010, Alexander Hungenberg <alexander.hungenberg@gmail.com>
+# Copyright (c) 2015, Mateusz Balbus <balbusm@gmail.com>
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,7 +28,9 @@ import subprocess
 import gettext
 import webbrowser
 
-from gi.repository import Gio, GLib, MessagingMenu, Notify
+import gi
+gi.require_version('Gst', '1.0')
+from gi.repository import Gio, GLib, Gst, MessagingMenu, Notify
 
 from twisted.internet import gireactor
 gireactor.install()
@@ -35,6 +38,7 @@ from twisted.internet import reactor
 from twisted.words.protocols.jabber import jid
 
 from gtalk import MailChecker
+import account_settings_provider
 import gm_notify_keyring as keyring
 
 _ = gettext.translation('gm-notify', fallback=True).ugettext
@@ -42,6 +46,10 @@ _ = gettext.translation('gm-notify', fallback=True).ugettext
 MAILBOXES_NAMES = { "inbox": _("Inbox") }
 
 MAILBOXES_URLS = {  "inbox": "" }
+
+GMAIL_DOMAINS = ['gmail.com','googlemail.com']
+
+EMAIL_RETRIEVAL_ERROR = "--retrieval-error"
 
 class PathNotFound(Exception): pass
 
@@ -54,28 +62,15 @@ def get_executable_path(name):
     if os.path.exists(path) and os.access(path, os.X_OK): return path
     raise PathNotFound("%s not found" % name)
 
-def play_sound(name):
-    '''Spawns a canberra-gtk-play process to play the sound'''
-    if name is None:
-        return
-    player_path = "/usr/bin/canberra-gtk-play"
-    # Not installed?
-    if not os.path.exists(player_path):
-        return
-    command = [player_path]
-    # File exists, so use the file flag
-    if os.path.exists(name):
-        command.extend(["-f", name])
-    # Assume it is a sound id
-    else:
-        command.extend(["-i", name])
-    try:
-        result = GLib.spawn_async(command)
-    except:
-        return
-    # Does nothing but the documentation says to do it anyway
-    if len(result) > 0:
-        GLib.spawn_close_pid(result[0])
+class Account:
+    def __init__(self):
+        self.username = None
+        self.client = None
+        self.soundfile = None
+        self.ignore_inbox = None
+        self.domain = None
+        self.labels = None
+        self.use_mail_client = None
 
 class CheckMail(Gio.Application):
     def __init__(self):
@@ -84,13 +79,35 @@ class CheckMail(Gio.Application):
         super(CheckMail, self).__init__(application_id="net.launchpad.gm-notify",
             flags=Gio.ApplicationFlags.FLAGS_NONE)
 
+        self.player = None
         self._has_activated = False
         self._counts = {}
         self.connect("activate", self.on_activate)
 
+    def play_sound(self, name):
+        '''Uses GSound to play the music'''
+        if name is None:
+            return
+        
+        if not self.player: 
+            Gst.init()
+            self.player = Gst.ElementFactory.make("playbin", "player")
+
+        self.player.set_property("uri", "file://" + name)
+        result = self.player.set_state(Gst.State.PLAYING)
+        if result == Gst.StateChangeReturn.FAILURE:
+            print("Unable to play " + name)
+
     def on_remote_quit(self, action, args):
         '''Stops the application when the "remote-quit" action is activated'''
         reactor.stop()
+
+    def run(self, args):
+        self.register();
+        if self.get_is_remote():
+            self.activate()
+        else:
+            super(CheckMail, self).run(args)
 
     def on_activate(self, app):
         '''When first receiving the activate signal, initialize the primary
@@ -113,8 +130,8 @@ class CheckMail(Gio.Application):
             sys.exit(-1)
 
         keys = keyring.Keyring("GMail", "mail.google.com", "http")
-        if keys.has_credentials():
-            self.creds = keys.get_credentials()
+        if keys.has_any_credentials():
+            creds = keys.get_all_credentials()
         else:
             print("Failed to get credentials")
             # Start gm-notify-config if no credentials are found
@@ -122,110 +139,140 @@ class CheckMail(Gio.Application):
                 subprocess.call(get_executable_path("gm-notify-config"))
             except PathNotFound:
                 print(_("gm-notify-config utility was not found"))
+
             sys.exit(-1)
         
-        # check if we use Google Apps to start the correct webinterface
-        gmail_domains = ['gmail.com','googlemail.com']
-        self.jid = jid.JID(self.creds[0])
-        if self.jid.host in gmail_domains:
-            self.domain = None
-        else:
-            self.domain = self.jid.host
-        
-        self.client = Gio.Settings("net.launchpad.gm-notify")
-        
-        # Set up the sound file
-        self._soundfile = self.client.get_string("soundfile")
-        if self._soundfile == '':
-            self._soundfile = "message-new-instant"
-        if not self.client.get_boolean("play-sound"):
-            self._soundfile = None
-
         # Messaging Menu integration
         self._m_menu = MessagingMenu.App.new("gm-notify.desktop")
         self._m_menu.register()
         self._m_menu.connect("activate-source", self.source_clicked)
 
-        # Read ignore-inbox value. If true you will only receive notifications
-        # about configured labels
-        self.ignore_inbox = self.client.get_boolean("ignore-inbox")
-        
-        # Retrieve the mailbox we're gonna check
-        self.mailboxes = self.client.get_strv("mailboxes")
-        self.mailboxes.insert(0, "inbox")
-        self.checker = MailChecker(self.jid, self.creds[1], self.mailboxes[1:], self.new_mail, self.update_count)
-        self.checker.connect()
-    
+        self.accounts = self.init_accounts(creds)
+
+
+    def init_accounts(self, creds):
+        accounts = {}
+        for credentails in creds:
+            account = Account()
+            account.username = credentails.username
+            local_jid = jid.JID(account.username)
+            # check if we use Google Apps to start the correct webinterface
+            if local_jid.host not in GMAIL_DOMAINS:
+                account.domain = local_jid.host
+            
+            client = account_settings_provider.create_settings_provider(account.username)
+            account.client = client 
+            
+            account.use_mail_client = client.retrieve_use_mail_client()
+            
+            # Set up the sound file
+            if client.retrieve_sound_enabled():
+                account.soundfile = client.retrieve_sound_file("message-new-instant")
+            # Read ignore-inbox value. If true you will only receive notifications
+            # about configured labels
+            account.ignore_inbox = client.retrieve_ignore_inbox()
+            
+            # Retrieve the mailbox we're gonna check
+            account.labels = client.retrieve_labels()
+            account.labels.insert(0, "inbox")
+            account.checker = MailChecker(local_jid, credentails.password, client, account.labels[1:], self.new_mail, self.update_count)
+            account.checker.setOnConnectionErrorCB(self.checker_connection_error)
+            account.checker.setOnAuthFailed(self.checker_auth_failed)
+            account.checker.setOnAuthSucceeded(self.checker_auth_succeeded)
+            account.checker.connect()
+            
+            accounts[credentails.username] = account
+        return accounts
+
     def indicator_clicked(self):
         '''called when "Google Mail" is clicked in indicator-messages and
         performs a Mail Check'''
-        for label in self.mailboxes:
-            self.remove_attention(label)
-        
-        self.checker.queryInbox()
+        for username, account in self.accounts.items():
+            for label in account.labels:
+                self.remove_attention(self.compose_id(username, label))
+            
+        for username, account in self.accounts.items():
+            account.checker.queryInbox()
+
+    def compose_label(self, username, label):
+        return "%s (%s)" % (username, label)
+
+    def compose_id(self, username, label):
+        return "%s&%s" % (username, label)
+    
+    def decompose_id(self, id):
+        decomposed = id.split("&")
+        return (decomposed[0], decomposed[1])
 
     def remove_attention(self, label):
         '''Removes attention from the label source if it exists'''
         if self._m_menu.has_source(label):
             self._m_menu.remove_attention(label)
 
-    def has_source(self, label):
+    def has_source(self, username, label):
         '''Returns true if we have this label, or if we don't and it is in our
         mailboxes list, create it'''
-        if label == "inbox" and self.ignore_inbox:
+        account = self.accounts[username]
+        if label == "inbox" and account.ignore_inbox:
             return False
-        elif label in self.mailboxes:
-            if not self._m_menu.has_source(label):
+        elif label in account.labels:
+            mail_label = self.compose_id(username, label)
+            if not self._m_menu.has_source(mail_label):
                 if label in MAILBOXES_NAMES:
                     name = MAILBOXES_NAMES[label]
                 else:
                     name = label
+                name_label = self.compose_label(username, name)
                 if label == "inbox":
-                    self._m_menu.insert_source_with_string(0, label, None, name, _("empty"))
+                    self._m_menu.insert_source_with_string(0, mail_label, None, name_label, _("empty"))
                 else:
-                    self._m_menu.append_source_with_string(label, None, name, _("empty"))
-                if label in self._counts:
-                    self._m_menu.set_source_count(label, self._counts[label])
+                    self._m_menu.append_source_with_string(mail_label, None, name_label, _("empty"))
+                if mail_label in self._counts:
+                    self._m_menu.set_source_count(mail_label, self._counts[mail_label])
             return True
         else:
             return False
     
-    def update_count(self, count):
+    def update_count(self, username, count):
         '''Updates the count for all the mailboxes'''
+        account = self.accounts[username]
         for mailbox in count.iteritems():
-            if mailbox[0] == "inbox" and self.ignore_inbox:
+            if mailbox[0] == "inbox" and account.ignore_inbox:
                 continue
             
-            if self.has_source(mailbox[0]):
+            if self.has_source(username, mailbox[0]):
                 # Get the last count
                 last_count = 0
-                if mailbox[0] in self._counts:
-                    last_count = self._counts[mailbox[0]]
+                mail_label = self.compose_id(username, mailbox[0])
+                if mail_label in self._counts:
+                    last_count = self._counts[mail_label]
                 current_count = int(mailbox[1])
 
                 # Remove attention if the count has decreased
                 if last_count > current_count:
-                    self._m_menu.remove_attention(mailbox[0])
+                    self._m_menu.remove_attention(mail_label)
                 if current_count > 0:
-                    self._m_menu.set_source_count(mailbox[0], current_count)
+                    self._m_menu.set_source_count(mail_label, current_count)
                 # Remove the source if 0 messages, to save space
                 else:
-                    self._m_menu.remove_source(mailbox[0])
-                self._counts[mailbox[0]] = current_count
+                    self._m_menu.remove_source(mail_label)
+                self._counts[mail_label] = current_count
     
-    def new_mail(self, mails):
+    def new_mail(self, username, mails):
         '''Takes mailbox name and titles of mails, to display notification and add indicators'''
+        account = self.accounts[username]
         text = ""
         # aggregate the titles of the messages... cut the string if longer than 30 chars
         for mail in mails:
             got_label = False
             for label in mail['labels']:
                 if label == u"^i": label = "inbox"
-                if label == "inbox" and self.ignore_inbox:
+                if label == "inbox" and account.ignore_inbox:
                     continue
-                if self.has_source(label):
+                if self.has_source(username, label):
                     got_label = True
-                    self._m_menu.draw_attention(label)
+                    mail_label = self.compose_id(username, label)
+                    self._m_menu.draw_attention(mail_label)
             if not got_label: continue
             
             if "sender_name" in mail: text += mail['sender_name'] + ":\n"
@@ -242,32 +289,75 @@ class CheckMail(Gio.Application):
             text += "- " + title + "\n"
             
         if text:
-            self.showNotification(_("Incoming message"), text.strip("\n"))
-            play_sound(self._soundfile)
+            self.show_notification("{0}".format(username), text.strip("\n"))
+            self.play_sound(self.accounts[username].soundfile)
     
     def source_clicked(self, app, source_id):
         '''called when a label is clicked in the indicator-applet and opens the corresponding gmail page'''
-        if self.domain:
-            url = "https://mail.google.com/a/"+self.domain+"/"
-        else:
-            url = "https://mail.google.com/mail/"
-        
-        try:
-            url += "#%s" % MAILBOXES_URLS[source_id]
-        except KeyError:
-            url += "#label/%s" % source_id
+        # TODO: missing username
+        username, label = self.decompose_id(source_id)
+        if label == EMAIL_RETRIEVAL_ERROR:
+            return
+        account = self.accounts[username]
         
         # Open mail client
-        if self.client.get_boolean("openclient"):
+        if account.use_mail_client:
             try:
                 info = Gio.AppInfo.get_default_for_type("x-scheme-handler/mailto", False)
                 info.launch(None, None)
             except:
                 pass
         else:
+            url = self.prep_url(account, label)
             webbrowser.open(url)
 
-    def showNotification(self, title, message):
+    def prep_url(self, account, label):
+        url_domain = self.prep_url_domain(account.domain)
+        url_label = self.prep_url_label(label)
+
+        return ("https://accounts.google.com/AccountChooser?"
+                "Email={0}"
+                "&continue=https%3A%2F%2Fmail.google.com%2Fmail%2F{1}"
+                "&service=mail"
+                "&hd={2}").format(account.username, url_label, url_domain)
+
+    def prep_url_label(self, label):
+        if label in MAILBOXES_URLS:
+            return "%23{0}".format(MAILBOXES_URLS[label])
+        else:
+            return "%23label%2F{0}".format(label)
+
+    def prep_url_domain(self, domain):
+        if domain:
+            return domain
+        else:
+            return "default"
+    
+    def checker_auth_succeeded(self, username):
+        error_label = self.compose_id(username, EMAIL_RETRIEVAL_ERROR)
+        self._m_menu.remove_source(error_label)
+    
+    def checker_connection_error(self, username, error): 
+        self.check_failed(username, _("Cannot retrieve emails"))
+    
+    def checker_auth_failed(self, username, error):
+        self.check_failed(username, _("Authentication failed"))
+    
+    def check_failed(self, username, feed):
+        
+        for id in self._counts:
+            local_username, local_label = self.decompose_id(id)
+            if local_username == username:
+                self._m_menu.remove_source(id)
+            
+        error_id = self.compose_id(username, EMAIL_RETRIEVAL_ERROR)
+        if self._m_menu.has_source(error_id):
+            return
+        self._m_menu.append_source(error_id, None, username + _(" - Cannot retrieve emails"))
+        n = Notify.Notification.new(_("Error for ") + username, feed, "messagebox_critical")
+        n.show()
+    
+    def show_notification(self, title, message):
         '''takes a title and a message to display the email notification. Returns the
         created notification object'''
         
@@ -276,6 +366,13 @@ class CheckMail(Gio.Application):
         
         return n
     
+    def shutdown(self):
+        if self.accounts: 
+            for username, account in self.accounts.items():
+                if account.checker : account.checker.die()
+    
 cm = CheckMail()
 reactor.registerGApplication(cm)
+reactor.addSystemEventTrigger('before', 'shutdown', cm.shutdown)
 reactor.run()
+

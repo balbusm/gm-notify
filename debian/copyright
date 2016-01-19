@@ -1,19 +1,34 @@
-This package was debianized by Ken VanDine <ken.vandine@canonical.com> on
-Thu, 07 May 2009 01:39:52 -0400.
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: gm-notify
+Source: https://launchpad.net/gm-notify
+Upstream-Contact: Alexander Hungenberg <alexander.hungenberg@gmail.com>
 
-It was downloaded from https://launchpad.net/gm-notify
+Files: *
+Copyright: 2009-2010, Alexander Hungenberg <alexander.hungenberg@gmail.com>
+License: GPL-3+
 
-Upstream Author:
+Files: po/*
+Copyright: 2009, Rosetta Contributors and Canonical Ltd.
+License: GPL-3+
 
-    Alexander Hungenberg <alexander.hungenberg@gmail.com>
+Files: debian/*
+Copyright: 2009, Ken VanDine <ken.vandine@canonical.com>,
+           2010, Andrew Starr-Bochicchio <a.starr.b@gmail.com>
+License: GPL-3+
 
-Copyright:
-
-    Copyright (c) 2009, Alexander Hungenberg <alexander.hungenberg@gmail.com>
-
-License:
-
-    GPL-3
-
-The Debian packaging is copyright 2009, Ken VanDine <ken.vandine@canonical.com> and
-is licensed under the GPL, see `/usr/share/common-licenses/GPL'.
+License: GPL-3+
+    This package is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+    .
+    This package is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    .
+    You should have received a copy of the GNU General Public License
+    along with this package; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+    .
+    On Debian systems, see `/usr/share/common-licenses/GPL-3'.
