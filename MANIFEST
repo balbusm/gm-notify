@@ -4,12 +4,14 @@ gm-notify
 keyring.py
 setup.py
 gm-config.glade
+gm-config.ui
 gtalk.py
 data/checking.gif
 data/gm-notify
 data/gm-notify-config.desktop
 data/gm-notify.desktop
 data/gm-notify.schemas
+data/net.launchpad.gm-notify.gschema.xml
 po/gm-notify.pot
 po/bg/gm-notify.mo
 po/bg/gm-notify.po

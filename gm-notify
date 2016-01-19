@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 # gm-notify v0.10.3
@@ -19,21 +19,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+from __future__ import print_function
+
 import os
 import sys
 import subprocess
 import gettext
 import webbrowser
 
-import pynotify
-import indicate
-import gobject
-import pygst
-pygst.require("0.10")
-import gst
-import gconf
-from twisted.internet import glib2reactor
-glib2reactor.install()
+from gi.repository import Gio, GLib, MessagingMenu, Notify
+
+from twisted.internet import gireactor
+gireactor.install()
 from twisted.internet import reactor
 from twisted.words.protocols.jabber import jid
 
@@ -57,22 +54,69 @@ def get_executable_path(name):
     if os.path.exists(path) and os.access(path, os.X_OK): return path
     raise PathNotFound("%s not found" % name)
 
-class CheckMail():
+def play_sound(name):
+    '''Spawns a canberra-gtk-play process to play the sound'''
+    if name is None:
+        return
+    player_path = "/usr/bin/canberra-gtk-play"
+    # Not installed?
+    if not os.path.exists(player_path):
+        return
+    command = [player_path]
+    # File exists, so use the file flag
+    if os.path.exists(name):
+        command.extend(["-f", name])
+    # Assume it is a sound id
+    else:
+        command.extend(["-i", name])
+    try:
+        result = GLib.spawn_async(command)
+    except:
+        return
+    # Does nothing but the documentation says to do it anyway
+    if len(result) > 0:
+        GLib.spawn_close_pid(result[0])
+
+class CheckMail(Gio.Application):
     def __init__(self):
         '''initiates DBUS-Messaging interface, creates the MailChecker and registers with indicator-applet.
         In the end it starts the periodic check timer and a gtk main-loop'''
-        
-        # Kill running gm-notify processes (UGLY!)
-        subprocess.call("kill `pgrep -f gm-notify | grep -v %s`" % os.getpid(), stdout=open("/dev/null", "w"), shell=True)
-        
-        # Initiate pynotify and Gnome Keyring
-        if not pynotify.init(_("GMail Notifier")):
+        super(CheckMail, self).__init__(application_id="net.launchpad.gm-notify",
+            flags=Gio.ApplicationFlags.FLAGS_NONE)
+
+        self._has_activated = False
+        self._counts = {}
+        self.connect("activate", self.on_activate)
+
+    def on_remote_quit(self, action, args):
+        '''Stops the application when the "remote-quit" action is activated'''
+        reactor.stop()
+
+    def on_activate(self, app):
+        '''When first receiving the activate signal, initialize the primary
+        instance. On subsequent activate signals, we are being activated from a
+        secondary instance, so treat it as if our name was clicked in the
+        messaging menu.'''
+        if self._has_activated:
+            self.indicator_clicked()
+            return
+
+        self._has_activated = True
+
+        # Add an action to quit
+        quit_action = Gio.SimpleAction.new("remote-quit", None)
+        quit_action.connect("activate", self.on_remote_quit)
+        self.add_action(quit_action)
+
+        # Initialize the desktop notifications
+        if not Notify.init(_("GMail Notifier")):
             sys.exit(-1)
-        
+
         keys = keyring.Keyring("GMail", "mail.google.com", "http")
         if keys.has_credentials():
             self.creds = keys.get_credentials()
         else:
+            print("Failed to get credentials")
             # Start gm-notify-config if no credentials are found
             try:
                 subprocess.call(get_executable_path("gm-notify-config"))
@@ -88,67 +132,86 @@ class CheckMail():
         else:
             self.domain = self.jid.host
         
-        # init gconf to read config values
-        self.client = gconf.client_get_default()
+        self.client = Gio.Settings("net.launchpad.gm-notify")
         
-        # init sound
-        soundfile = self.client.get_string("/apps/gm-notify/soundfile")
-        if self.client.get_bool("/apps/gm-notify/play_sound") and soundfile:
-            self.player = gst.element_factory_make("playbin", "player")
-            self.player.set_property("video-sink", gst.element_factory_make("fakesink", "fakesink"))
-            self.player.set_property("uri", "file://" + soundfile)
-            bus = self.player.get_bus()
-            bus.add_signal_watch()
-            bus.connect("message", self.gst_message)
-        else:
-            self.player = None
-        
-        # Register with Indicator-Applet
-        self.server = indicate.indicate_server_ref_default()
-        self.server.set_type("message.mail")
-        self.server.set_desktop_file("/usr/share/gm-notify/gm-notify.desktop")
-        self.server.connect("server-display", self.serverClick)
-        self.indicators = {}
-        
-        # Read /apps/gm-notify/ignore_inbox value. If true you will only receive
-        # notifications about configured labels
-        self.ignore_inbox = self.client.get_bool("/apps/gm-notify/ignore_inbox")
+        # Set up the sound file
+        self._soundfile = self.client.get_string("soundfile")
+        if self._soundfile == '':
+            self._soundfile = "message-new-instant"
+        if not self.client.get_boolean("play-sound"):
+            self._soundfile = None
+
+        # Messaging Menu integration
+        self._m_menu = MessagingMenu.App.new("gm-notify.desktop")
+        self._m_menu.register()
+        self._m_menu.connect("activate-source", self.source_clicked)
+
+        # Read ignore-inbox value. If true you will only receive notifications
+        # about configured labels
+        self.ignore_inbox = self.client.get_boolean("ignore-inbox")
         
         # Retrieve the mailbox we're gonna check
-        self.mailboxes = self.client.get_list("/apps/gm-notify/mailboxes", gconf.VALUE_STRING)
+        self.mailboxes = self.client.get_strv("mailboxes")
         self.mailboxes.insert(0, "inbox")
-        self.addMailboxIndicators()
         self.checker = MailChecker(self.jid, self.creds[1], self.mailboxes[1:], self.new_mail, self.update_count)
         self.checker.connect()
-        
-        reactor.run()
     
-    def gst_message(self, bus, message):
-        if message.type == gst.MESSAGE_EOS:
-            self.player.set_state(gst.STATE_NULL)
-        elif message.type == gst.MESSAGE_ERROR:
-            self.player.set_state(gst.STATE_NULL)
-            print "Error: %s - %s" % message.parse_error()
-    
-    def serverClick(self, server, timestamp=None):
-        '''called when the server is clicked in the indicator-applet and performs a Mail Check'''
-        for indicator in self.indicators:
-            self.indicators[indicator].set_property("draw-attention", "false")
+    def indicator_clicked(self):
+        '''called when "Google Mail" is clicked in indicator-messages and
+        performs a Mail Check'''
+        for label in self.mailboxes:
+            self.remove_attention(label)
         
-        if self.player: self.player.set_state(gst.STATE_NULL)
         self.checker.queryInbox()
+
+    def remove_attention(self, label):
+        '''Removes attention from the label source if it exists'''
+        if self._m_menu.has_source(label):
+            self._m_menu.remove_attention(label)
+
+    def has_source(self, label):
+        '''Returns true if we have this label, or if we don't and it is in our
+        mailboxes list, create it'''
+        if label == "inbox" and self.ignore_inbox:
+            return False
+        elif label in self.mailboxes:
+            if not self._m_menu.has_source(label):
+                if label in MAILBOXES_NAMES:
+                    name = MAILBOXES_NAMES[label]
+                else:
+                    name = label
+                if label == "inbox":
+                    self._m_menu.insert_source_with_string(0, label, None, name, _("empty"))
+                else:
+                    self._m_menu.append_source_with_string(label, None, name, _("empty"))
+                if label in self._counts:
+                    self._m_menu.set_source_count(label, self._counts[label])
+            return True
+        else:
+            return False
     
     def update_count(self, count):
+        '''Updates the count for all the mailboxes'''
         for mailbox in count.iteritems():
             if mailbox[0] == "inbox" and self.ignore_inbox:
                 continue
             
-            i = self.indicators[mailbox[0]]
-            if int(i.get_property("count")) > int(mailbox[1]):
-                i.set_property("draw-attention", "false")
-            i.set_property("count", unicode(mailbox[1]))
-            if int(mailbox[1]) or mailbox[0] == "inbox": i.show()
-            else: i.hide()
+            if self.has_source(mailbox[0]):
+                # Get the last count
+                last_count = 0
+                if mailbox[0] in self._counts:
+                    last_count = self._counts[mailbox[0]]
+                current_count = int(mailbox[1])
+
+                # Remove attention if the count has decreased
+                if last_count > current_count:
+                    self._m_menu.remove_attention(mailbox[0])
+                if current_count > 0:
+                    self._m_menu.set_source_count(mailbox[0], current_count)
+                # Remove the source if 0 messages, to save space
+                else:
+                    self._m_menu.remove_source(mailbox[0])
+                self._counts[mailbox[0]] = current_count
     
     def new_mail(self, mails):
         '''Takes mailbox name and titles of mails, to display notification and add indicators'''
@@ -158,11 +221,12 @@ class CheckMail():
             got_label = False
             for label in mail['labels']:
                 if label == u"^i": label = "inbox"
-                if label in self.indicators:
-                    if not label == "inbox" or not self.ignore_inbox:
-                        got_label = True
-                        self.indicators[label].set_property("draw-attention", "true")
-            if not got_label and self.ignore_inbox: continue
+                if label == "inbox" and self.ignore_inbox:
+                    continue
+                if self.has_source(label):
+                    got_label = True
+                    self._m_menu.draw_attention(label)
+            if not got_label: continue
             
             if "sender_name" in mail: text += mail['sender_name'] + ":\n"
             elif "sender_address" in mail: text += mail['sender_address'] + ":\n"
@@ -179,9 +243,9 @@ class CheckMail():
             
         if text:
             self.showNotification(_("Incoming message"), text.strip("\n"))
-            if self.player: self.player.set_state(gst.STATE_PLAYING)
+            play_sound(self._soundfile)
     
-    def labelClick(self, indicator, timestamp=None):
+    def source_clicked(self, app, source_id):
         '''called when a label is clicked in the indicator-applet and opens the corresponding gmail page'''
         if self.domain:
             url = "https://mail.google.com/a/"+self.domain+"/"
@@ -189,49 +253,29 @@ class CheckMail():
             url = "https://mail.google.com/mail/"
         
         try:
-            url += "#%s" % MAILBOXES_URLS[indicator.label]
+            url += "#%s" % MAILBOXES_URLS[source_id]
         except KeyError:
-            url += "#label/%s" % indicator.label
-        
-        indicator.set_property("draw-attention", "false")
+            url += "#label/%s" % source_id
         
         # Open mail client
-        if self.client.get_bool("/apps/gm-notify/openclient"):
-            command = self.client.get_string("/desktop/gnome/url-handlers/mailto/command").split(" ")[0]
-            if command.find("mutt") != -1: command += " -f =%s" % indicator.label
-            if self.client.get_bool("/desktop/gnome/url-handlers/mailto/needs_terminal"):
-                termCmd = self.client.get_string("/desktop/gnome/applications/terminal/exec")
-                if termCmd:
-                    termCmd += " " + self.client.get_string("/desktop/gnome/applications/terminal/exec_arg") + " "
-                else:
-                    termCmd = "gnome-terminal -x "
-                command = termCmd + command
-            subprocess.Popen(command, shell=True)
+        if self.client.get_boolean("openclient"):
+            try:
+                info = Gio.AppInfo.get_default_for_type("x-scheme-handler/mailto", False)
+                info.launch(None, None)
+            except:
+                pass
         else:
             webbrowser.open(url)
-    
+
     def showNotification(self, title, message):
         '''takes a title and a message to display the email notification. Returns the
         created notification object'''
         
-        n = pynotify.Notification(title, message, "notification-message-email")
+        n = Notify.Notification.new(title, message, "notification-message-email")
         n.show()
         
         return n
     
-    def addMailboxIndicators(self):
-        for mailbox in reversed(self.mailboxes):
-            new_indicator = indicate.Indicator()
-                
-            try:
-                new_indicator.set_property("name", MAILBOXES_NAMES[mailbox])
-            except KeyError:
-                new_indicator.set_property("name", mailbox)
-            new_indicator.set_property("count", "0")
-            new_indicator.label = mailbox
-            new_indicator.connect("user-display", self.labelClick)
-            self.indicators[mailbox] = new_indicator
-        self.indicators["inbox"].show()
-        if self.ignore_inbox: self.indicators["inbox"].hide()
-
 cm = CheckMail()
+reactor.registerGApplication(cm)
+reactor.run()

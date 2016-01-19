@@ -19,17 +19,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+from __future__ import print_function
+
 from threading import Event
 
 from twisted.words.protocols.jabber import xmlstream, client, jid
 from twisted.words.xish import domish
-from twisted.internet import reactor, task
+from twisted.internet import reactor, task, error
 
 _DEBUG = False
 COLOR_GREEN = "\033[92m"
 COLOR_END = "\033[0m"
 def DEBUG(msg):
-    if _DEBUG: print COLOR_GREEN + str(msg) + COLOR_END
+    if _DEBUG: print(COLOR_GREEN + str(msg) + COLOR_END)
 
 class GTalkClientFactory(xmlstream.XmlStreamFactory):
     def __init__(self, jid, password):
@@ -89,7 +91,11 @@ class MailChecker():
         self.connector.disconnect() # Our reconnecting factory will try the reconnecting
 
     def send_callback_handler(self, data, callback=None, **kargs):
-        self.timeout_call_id.cancel()
+        try:
+            self.timeout_call_id.cancel()
+        except error.AlreadyCalled:
+            DEBUG("already called timeout_call_id.cancel()")
+            return
         if callback:
             callback(data, **kargs)
         else:
@@ -242,10 +248,10 @@ class MailChecker():
         if iq: self.queryInbox()
     
     def rawDataIn(self, buf):
-        print u"< %s" % unicode(buf, "utf-8")
+        print(u"< %s" % unicode(buf, "utf-8"))
     
     def rawDataOut(self, buf):
-        print u"> %s" % unicode(buf, "utf-8")
+        print(u"> %s" % unicode(buf, "utf-8"))
     
     def connectedCB(self, xmlstream):
         self.xmlstream = xmlstream

@@ -1,0 +1,6 @@
+[net.launchpad.gm-notify]
+play-sound = /apps/gm-notify/play_sound
+ignore-inbox = /apps/gm-notify/ignore_inbox
+soundfile = /apps/gm-notify/soundfile
+mailboxes = /apps/gm-notify/mailboxes
+openclient = /apps/gm-notify/openclient
