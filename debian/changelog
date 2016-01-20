@@ -1,4 +1,4 @@
-gm-notify (1.0.0-0ubuntu1) vivid; urgency=medium
+gm-notify (1.0.0~ppa1) vivid; urgency=medium
 
   * Added multi-account support
   * Added support for multiple ports (default port 443)
