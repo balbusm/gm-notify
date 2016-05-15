@@ -30,6 +30,8 @@ import webbrowser
 
 import gi
 gi.require_version('Gst', '1.0')
+gi.require_version('MessagingMenu', '1.0')
+gi.require_version('Notify', '0.7')
 from gi.repository import Gio, GLib, Gst, MessagingMenu, Notify
 
 from twisted.internet import gireactor

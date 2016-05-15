@@ -14,14 +14,12 @@ Homepage: https://launchpad.net/gm-notify
 Package: gm-notify
 Architecture: all
 Provides: ${python:Provides}
-Depends: python-gconf,
-        python-glade2,
-        python-gnomekeyring,
-        python-gtk2,
-        python-indicate,
-        python-notify,
-        python-twisted-words,
+Depends: python-twisted-words,
+        gir1.2-gtk-3.0,
+        gir1.2-gnomekeyring-1.0,
+        gir1.2-notify-0.7,
         gir1.2-gstreamer-1.0,
+        gir1.2-messagingmenu-1.0,
         ${misc:Depends},
         ${python:Depends},
         ${shlibs:Depends}

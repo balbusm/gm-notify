@@ -2,6 +2,9 @@ from __future__ import print_function
 
 __version__ = "$Revision: 14294 $"
 
+import gi
+gi.require_version('Gtk', '3.0')
+gi.require_version('GnomeKeyring', '1.0')
 from gi.repository import GnomeKeyring, Gtk
 from collections import namedtuple
 Credentials = namedtuple("Credentials", ["username", "password"])
