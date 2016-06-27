@@ -66,6 +66,15 @@ class Keyring(object):
             users_list.append(d["user"])
         return users_list
     
+    def has_credentials(self, user):
+        attrs = attributes({
+                            "user" : user,
+                            "server": self._server,
+                            "protocol": self._protocol
+                            })
+        result, items = GnomeKeyring.find_items_sync(GnomeKeyring.ItemType.NETWORK_PASSWORD, attrs)
+        return len(items) > 0
+
     def get_credentials(self, user):
         attrs = attributes({
                             "user" : user,

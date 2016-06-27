@@ -57,15 +57,17 @@ class AccountConfig:
         self.wTree.get_object("notebook_main").set_current_page(0)
         
         self.input_user = self.wTree.get_object("input_user")
-        self.input_password = self.wTree.get_object("input_password")
-        self.image_credentials = self.wTree.get_object("image_credentials")
+        self.button_validate = self.wTree.get_object("button_validate")
+        
         self.label_credentials = self.wTree.get_object("label_credentials")
+        
+        self.image_credentials = self.wTree.get_object("image_credentials")
         self.button_apply = self.wTree.get_object("button_apply")
 
         self.window.connect("delete_event", self.close)
         self.wTree.get_object("button_close").connect("clicked", self.close)
+        self.button_validate.connect("clicked", self.check_credentials)
         self.button_apply.connect("clicked", self.apply)
-        self.input_password.connect("focus-out-event", self.check_credentials)
         self.input_user.connect("focus-out-event", self.check_user)
         self.wTree.get_object("checkbutton_sound").connect("toggled", self.on_checkbutton_sound_toggled)
 
@@ -81,7 +83,6 @@ class AccountConfig:
             self.input_user.set_text(self.creds.username)
             self.input_user.set_sensitive(False)
             
-        self.input_password.set_text(self.creds.password)
          
         self.api = MailChecker("", "", settings_provider)
         self.api.setOnAuthSucceeded(self.credentials_valid)
@@ -121,12 +122,8 @@ class AccountConfig:
     
     def save(self):
         '''saves the entered data and closes the app'''
-        # Credentials
-        self.keys.delete_credentials(self.creds.username)
-        
         user = self.input_user.get_text()
-        self.keys.set_credentials(user,
-                                  self.input_password.get_text())
+
         
         settings_provider = account_settings_provider.create_settings_provider(user)
         # Mailboxes
@@ -160,20 +157,20 @@ class AccountConfig:
     def has_mail_postfix(self, user):
         return len(user) == 0 or "@" in user
     
-    def check_credentials(self, widget, event, data=None):
+    def check_credentials(self, widget, event=None, data=None):
         '''check if the given credentials are valid'''
         
         self.button_apply.set_sensitive(False)
         
         # Change status text and disable input fields
-        if self.input_user.get_text() and self.input_password.get_text():
+        if self.input_user.get_text():
             self.image_credentials.set_from_file("/usr/share/gm-notify/checking.gif")
-            self.label_credentials.set_text(_("checking..."))
+            self.label_credentials.set_label(_("Checking..."))
+            self.button_validate.set_sensitive(False)
             self.input_user.set_sensitive(False)
-            self.input_password.set_sensitive(False)
             
             self.api.jid = jid.JID(self.input_user.get_text())
-            self.api.password = self.input_password.get_text()
+            self.api.password = "NOT_NEEDED"
             self.api.connect()
         return False
     
@@ -188,9 +185,9 @@ class AccountConfig:
         
     def on_credentials_checked(self, icon_name, text, valid = False):
         self.image_credentials.set_from_icon_name(icon_name, Gtk.IconSize.MENU)
-        self.label_credentials.set_text(_(text))
+        self.label_credentials.set_label(_(text))
+        self.button_validate.set_sensitive(True)
         self.input_user.set_sensitive(not bool(self.creds.username))
-        self.input_password.set_sensitive(True)
         self.button_apply.set_sensitive(valid)
 
         self.api.die()

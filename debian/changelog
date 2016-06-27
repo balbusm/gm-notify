@@ -1,3 +1,9 @@
+gm-notify (2.0.0b) vivid; urgency=medium
+
+  * Added OAuth2 authentication
+
+ -- Mateusz Balbus <balbusm@gmail.com>  Thu, 15 Oct 2015 15:43:32 +0200
+
 gm-notify (1.0.1) vivid; urgency=medium
 
   * Added missing dependency

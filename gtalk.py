@@ -28,6 +28,7 @@ from twisted.internet import reactor, task, error, ssl
 from twisted.internet.error import TimeoutError, ConnectionRefusedError
 
 from datetime import datetime
+import XMPPOAuth2Authenticator
 
 GTALK_HOST = "talk.google.com"
 
@@ -43,7 +44,7 @@ def DEBUG(msg):
 class GTalkClientFactory(xmlstream.XmlStreamFactory):
     
     def __init__(self, jid, password, settings_provider):
-        a = client.XMPPAuthenticator(jid, password)
+        a = XMPPOAuth2Authenticator.XMPPAuthenticator(jid, password)
         xmlstream.XmlStreamFactory.__init__(self, a)
         self.addBootstrap(xmlstream.STREAM_CONNECTED_EVENT, self.clientConnected)
         
