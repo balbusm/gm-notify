@@ -286,7 +286,7 @@ class OAuth2Token:
           pass
         
       flow = client.flow_from_clientsecrets(
-        'secret.json',
+        'data/secret.json',
         scope='https://www.googleapis.com/auth/googletalk',
         redirect_uri='http://localhost:8080',
         login_hint=self.login)

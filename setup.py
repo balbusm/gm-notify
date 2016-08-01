@@ -3,15 +3,16 @@
 from distutils.core import setup
 
 setup(  name='gm-notify',
-        version='1.0.0',
+        version='2.0.0',
         description='Highly Ubuntu integrated GMail Notifier',
         author='Mateusz Balbus',
         author_email='balbusmg@gmail.com',
-        py_modules=['gtalk', 'gm_notify_keyring', 'account_settings_provider', 'account_config'],
+        py_modules=['gtalk', 'gm_notify_keyring', 'account_settings_provider', 'account_config', 'XMPPOAuth2Authenticator'],
         scripts=['gm-notify', 'gm-notify-config'],
         data_files=[('/usr/share/applications', ['data/gm-notify-config.desktop']),
                     ('/usr/share/applications', ['data/gm-notify.desktop']),
                     ('/usr/share/gm-notify', ['data/checking.gif']),
+                    ('/usr/share/gm-notify', ['data/secret.json']),
                     ('/usr/share/gm-notify', ['gm-config.ui']),
                     ('/usr/share/gm-notify', ['gm-list.ui']),
                     ('/usr/share/glib-2.0/schemas', ['data/net.launchpad.gm-notify.gschema.xml']),
