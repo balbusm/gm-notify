@@ -15,6 +15,7 @@ Package: gm-notify
 Architecture: all
 Provides: ${python:Provides}
 Depends: python-twisted-words,
+        python-gi,
         python-oauth2client,
         gir1.2-gtk-3.0,
         gir1.2-gnomekeyring-1.0,

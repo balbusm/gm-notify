@@ -21,6 +21,7 @@
             <child>
               <object class="GtkBox" id="vbox1">
                 <property name="can_focus">False</property>
+                <property name="resize_mode">immediate</property>
                 <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkGrid" id="grid1">
@@ -50,65 +51,11 @@
                         <property name="top_attach">0</property>
                       </packing>
                     </child>
-                    <child>
-                      <object class="GtkButton" id="button_validate">
-                        <property name="label">Validate account</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">False</property>
-                        <property name="halign">center</property>
-                        <property name="valign">center</property>
-                        <property name="resize_mode">immediate</property>
-                        <property name="use_stock">True</property>
-                        <property name="xalign">0.42000001668930054</property>
-                        <property name="image_position">top</property>
-                        <signal name="clicked" handler="on_button_validate_clicked" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkBox" id="box1">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="orientation">vertical</property>
-                        <child>
-                          <object class="GtkImage" id="image_credentials">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="stock">gtk-stop</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="label_credentials">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="opacity">0.96999999999999997</property>
-                            <property name="label" translatable="yes">Validate on the website</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">1</property>
-                      </packing>
-                    </child>
                   </object>
                   <packing>
-                    <property name="expand">True</property>
+                    <property name="expand">False</property>
                     <property name="fill">True</property>
+                    <property name="padding">20</property>
                     <property name="position">0</property>
                   </packing>
                 </child>
