@@ -9,12 +9,14 @@ from gi.repository import GnomeKeyring, Gtk
 from collections import namedtuple
 Credentials = namedtuple("Credentials", ["username", "password"])
 Credentials.__new__.__defaults__ = ("", "")
+__version__ = "2.0"
 
 def attributes(d):
     '''Converts a dictionary to a GnomeKeyring.Attribute array'''
     attrs = GnomeKeyring.Attribute.list_new()
     for key in d:
         GnomeKeyring.Attribute.list_append_string(attrs, key, str(d[key]))
+    GnomeKeyring.Attribute.list_append_string(attrs, 'version', __version__)
     return attrs
 
 def dict_from_attributes(attrs):
@@ -66,6 +68,15 @@ class Keyring(object):
             users_list.append(d["user"])
         return users_list
     
+    def has_credentials(self, user):
+        attrs = attributes({
+                            "user" : user,
+                            "server": self._server,
+                            "protocol": self._protocol
+                            })
+        result, items = GnomeKeyring.find_items_sync(GnomeKeyring.ItemType.NETWORK_PASSWORD, attrs)
+        return len(items) > 0
+
     def get_credentials(self, user):
         attrs = attributes({
                             "user" : user,
