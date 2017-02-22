@@ -17,6 +17,7 @@ Provides: ${python:Provides}
 Depends: python-twisted-words,
         python-gi,
         python-imaplib2,
+        python-apscheduler
         gir1.2-gtk-3.0,
         gir1.2-gnomekeyring-1.0,
         gir1.2-notify-0.7,

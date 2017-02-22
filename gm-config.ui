@@ -21,6 +21,7 @@
             <child>
               <object class="GtkBox" id="vbox1">
                 <property name="can_focus">False</property>
+                <property name="resize_mode">immediate</property>
                 <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkGrid" id="grid1">
@@ -40,17 +41,6 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="label_password">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Password:</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkEntry" id="input_user">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
@@ -61,45 +51,11 @@
                         <property name="top_attach">0</property>
                       </packing>
                     </child>
-                    <child>
-                      <object class="GtkEntry" id="input_password">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="visibility">False</property>
-                        <property name="invisible_char">●</property>
-                        <signal name="focus-out-event" handler="on_input_password_focus_out_event" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkImage" id="image_credentials">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="stock">gtk-stop</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">0</property>
-                        <property name="top_attach">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label_credentials">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Please enter credentials</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">2</property>
-                      </packing>
-                    </child>
                   </object>
                   <packing>
-                    <property name="expand">True</property>
+                    <property name="expand">False</property>
                     <property name="fill">True</property>
+                    <property name="padding">20</property>
                     <property name="position">0</property>
                   </packing>
                 </child>
@@ -125,8 +81,8 @@
                       <object class="GtkLabel" id="label_click">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="xalign">0</property>
                         <property name="label" translatable="yes">Click on applet opens:</property>
+                        <property name="xalign">0</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -258,9 +214,9 @@
                               <object class="GtkLabel" id="label_labeldesc">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="xalign">0</property>
                                 <property name="label" translatable="yes">Please enter the Labels you want to have
 checked seperated by commas</property>
+                                <property name="xalign">0</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>

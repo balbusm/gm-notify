@@ -22,13 +22,13 @@ from __future__ import print_function
 import os
 import gettext
 
-from gi.repository import Gio, Gtk
-from twisted.words.protocols.jabber import jid
+from gi.repository import GLib, Gtk
 
-from gtalk import MailChecker
+from imap_mail_checker import ImapMailChecker
 import account_settings_provider
 
 _ = gettext.translation('gm-notify', fallback=True).ugettext
+
 
 class AccountConfig:
     def __init__(self, keys, creds):
@@ -57,16 +57,15 @@ class AccountConfig:
         self.wTree.get_object("notebook_main").set_current_page(0)
         
         self.input_user = self.wTree.get_object("input_user")
-        self.input_password = self.wTree.get_object("input_password")
-        self.image_credentials = self.wTree.get_object("image_credentials")
-        self.label_credentials = self.wTree.get_object("label_credentials")
+        
+        #self.label_credentials = self.wTree.get_object("label_credentials")
+        
+        #self.image_credentials = self.wTree.get_object("image_credentials")
         self.button_apply = self.wTree.get_object("button_apply")
 
         self.window.connect("delete_event", self.close)
         self.wTree.get_object("button_close").connect("clicked", self.close)
         self.button_apply.connect("clicked", self.apply)
-        self.input_password.connect("focus-out-event", self.check_credentials)
-        self.input_user.connect("focus-out-event", self.check_user)
         self.wTree.get_object("checkbutton_sound").connect("toggled", self.on_checkbutton_sound_toggled)
 
         #####
@@ -81,14 +80,9 @@ class AccountConfig:
             self.input_user.set_text(self.creds.username)
             self.input_user.set_sensitive(False)
             
-        self.input_password.set_text(self.creds.password)
-         
-        self.api = MailChecker("", "", settings_provider)
-        self.api.setOnAuthSucceeded(self.credentials_valid)
-        self.api.setOnAuthFailed(self.credentials_invalid)
-        self.api.setOnConnectionErrorCB(self.connection_error)
-
-        self.check_credentials(None, None)
+        
+        self.messagedialog = None
+        self.api = self.setupApi()
 
         # Sound
         self.wTree.get_object("checkbutton_sound").set_active(settings_provider.retrieve_sound_enabled())
@@ -110,23 +104,48 @@ class AccountConfig:
 
         return self.window
     
+    def setupApi(self, login = None):
+        api = ImapMailChecker(login)
+        api.set_on_auth_succeeded(self.credentials_valid)
+        api.set_on_auth_failed(self.credentials_invalid)
+        api.set_on_connection_error_cb(self.connection_error)
+        return api
+    
     def close(self, widget = None, event = None):
         if self.api.is_running():
-            self.api.die()
+            self.api.stop()
         self.window.close()
+        
+
+    def message_cb(self, action, text, buttons = Gtk.ButtonsType.OK_CANCEL):
+        # a Gtk.MessageDialog
+        messagedialog = Gtk.MessageDialog(parent=self.window,
+                                          flags=Gtk.DialogFlags.MODAL,
+                                          type=Gtk.MessageType.WARNING,
+                                          buttons=buttons,
+                                          message_format=_(text))
+        # connect the response (of the button clicked) to the function
+        # dialog_response()
+        dialog_action = lambda widget, response_id: self.dialog_close(action, widget, response_id)
+        messagedialog.connect("response", dialog_action)
+        # show the messagedialog
+        messagedialog.show()
+        return messagedialog
+    
+    def dialog_close(self, action, widget, response_id):
+        if action is not None:
+            action(widget, response_id)
+        widget.close()
     
     def apply(self, widget):
-        self.save()
-        self.close()
+        self.check_user()
+        if not self.check_credentials():
+            self.message_cb(None, "Provide email account", Gtk.ButtonsType.OK)
     
     def save(self):
         '''saves the entered data and closes the app'''
-        # Credentials
-        self.keys.delete_credentials(self.creds.username)
-        
         user = self.input_user.get_text()
-        self.keys.set_credentials(user,
-                                  self.input_password.get_text())
+
         
         settings_provider = account_settings_provider.create_settings_provider(user)
         # Mailboxes
@@ -152,7 +171,7 @@ class AccountConfig:
     def on_checkbutton_sound_toggled(self, widget):
         self.wTree.get_object("fcbutton_sound").set_sensitive(self.wTree.get_object("checkbutton_sound").get_active())
     
-    def check_user(self, widget, event):
+    def check_user(self):
         user = self.input_user.get_text()
         if not self.has_mail_postfix(user):
             self.input_user.set_text(user + "@gmail.com")
@@ -160,22 +179,24 @@ class AccountConfig:
     def has_mail_postfix(self, user):
         return len(user) == 0 or "@" in user
     
-    def check_credentials(self, widget, event, data=None):
+    def check_credentials(self, event=None):
         '''check if the given credentials are valid'''
-        
-        self.button_apply.set_sensitive(False)
-        
         # Change status text and disable input fields
-        if self.input_user.get_text() and self.input_password.get_text():
-            self.image_credentials.set_from_file("/usr/share/gm-notify/checking.gif")
-            self.label_credentials.set_text(_("checking..."))
-            self.input_user.set_sensitive(False)
-            self.input_password.set_sensitive(False)
-            
-            self.api.jid = jid.JID(self.input_user.get_text())
-            self.api.password = self.input_password.get_text()
+        if self.input_user.get_text():
+            self.messagedialog = self.message_cb(self.on_check_credentials_cancel, "Please verify your account on Google page", Gtk.ButtonsType.CANCEL)
+            image = Gtk.Image()
+            image.set_from_file("/usr/share/gm-notify/checking.gif")
+            image.show()
+            self.messagedialog.set_image(image)
+            self.api = self.setupApi(self.input_user.get_text())
             self.api.connect()
+            return True
         return False
+        
+    def on_check_credentials_cancel(self, widget, response_id):
+        if response_id == Gtk.ResponseType.CANCEL:
+            widget.close()
+            self.api.stop()
     
     def credentials_valid(self, username):
         self.on_credentials_checked("gtk-yes", "Valid credentials", True)
@@ -187,11 +208,27 @@ class AccountConfig:
         self.on_credentials_checked("gtk-stop", "Connection error")
         
     def on_credentials_checked(self, icon_name, text, valid = False):
-        self.image_credentials.set_from_icon_name(icon_name, Gtk.IconSize.MENU)
-        self.label_credentials.set_text(_(text))
-        self.input_user.set_sensitive(not bool(self.creds.username))
-        self.input_password.set_sensitive(True)
-        self.button_apply.set_sensitive(valid)
-
-        self.api.die()
+        if self.messagedialog is not None:
+            self.messagedialog.close()
+            self.messagedialog = None
+#         self.image_credentials.set_from_icon_name(icon_name, Gtk.IconSize.MENU)
+#         self.label_credentials.set_label(_(text))
+#         self.button_validate.set_sensitive(True)
+        editing = bool(self.creds.username)
+        self.input_user.set_sensitive(not editing)
+        self.api.stop()
+        
+        if not editing and valid:
+            self.check_account_already_saved()
+            
+    def check_account_already_saved(self):    
+        # Doesn't work since account has been just added in OAuth2 Get token
+        if self.keys.has_credentials(self.input_user.get_text()):
+            self.message_cb(self.should_override, "Account already exists. Override?", Gtk.ButtonsType.YES_NO)
+        else: self.save()
+        
+    def should_override(self, widget, response_id):
+        if response_id == Gtk.ResponseType.OK:
+            self.save()
+        
         

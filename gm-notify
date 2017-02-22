@@ -27,6 +27,8 @@ import sys
 import subprocess
 import gettext
 import webbrowser
+import re
+import signal
 
 import gi
 gi.require_version('Gst', '1.0')
@@ -34,12 +36,7 @@ gi.require_version('MessagingMenu', '1.0')
 gi.require_version('Notify', '0.7')
 from gi.repository import Gio, GLib, Gst, MessagingMenu, Notify
 
-from twisted.internet import gireactor
-gireactor.install()
-from twisted.internet import reactor
-from twisted.words.protocols.jabber import jid
-
-from gtalk import MailChecker
+from imap_mail_checker import ImapMailChecker
 import account_settings_provider
 import gm_notify_keyring as keyring
 
@@ -65,14 +62,21 @@ def get_executable_path(name):
     raise PathNotFound("%s not found" % name)
 
 class Account:
-    def __init__(self):
-        self.username = None
+    def __init__(self, username):
+        self.username = username
+        # check if we use Google Apps to start the correct webinterface
+        self.domain = self._retrieve_domain(username)
         self.client = None
         self.soundfile = None
         self.ignore_inbox = None
-        self.domain = None
         self.labels = None
         self.use_mail_client = None
+    def _retrieve_domain(self, username):
+        domain_regex = re.search("@([\w.]+)", username)
+        domain = domain_regex.group(1)
+        if domain in GMAIL_DOMAINS:
+            return None;
+        return domain
 
 class CheckMail(Gio.Application):
     def __init__(self):
@@ -84,6 +88,7 @@ class CheckMail(Gio.Application):
         self.player = None
         self._has_activated = False
         self._counts = {}
+        self.accounts = None
         self.connect("activate", self.on_activate)
 
     def play_sound(self, name):
@@ -103,13 +108,6 @@ class CheckMail(Gio.Application):
     def on_remote_quit(self, action, args):
         '''Stops the application when the "remote-quit" action is activated'''
         reactor.stop()
-
-    def run(self, args):
-        self.register();
-        if self.get_is_remote():
-            self.activate()
-        else:
-            super(CheckMail, self).run(args)
 
     def on_activate(self, app):
         '''When first receiving the activate signal, initialize the primary
@@ -155,12 +153,7 @@ class CheckMail(Gio.Application):
     def init_accounts(self, creds):
         accounts = {}
         for credentails in creds:
-            account = Account()
-            account.username = credentails.username
-            local_jid = jid.JID(account.username)
-            # check if we use Google Apps to start the correct webinterface
-            if local_jid.host not in GMAIL_DOMAINS:
-                account.domain = local_jid.host
+            account = Account(credentails.username)
             
             client = account_settings_provider.create_settings_provider(account.username)
             account.client = client 
@@ -177,10 +170,10 @@ class CheckMail(Gio.Application):
             # Retrieve the mailbox we're gonna check
             account.labels = client.retrieve_labels()
             account.labels.insert(0, "inbox")
-            account.checker = MailChecker(local_jid, credentails.password, client, account.labels[1:], self.new_mail, self.update_count)
-            account.checker.setOnConnectionErrorCB(self.checker_connection_error)
-            account.checker.setOnAuthFailed(self.checker_auth_failed)
-            account.checker.setOnAuthSucceeded(self.checker_auth_succeeded)
+            account.checker = ImapMailChecker(account.username, account.labels[1:],None, self.on_new_mail)
+            account.checker.set_on_connection_error_cb(self.checker_connection_error)
+            account.checker.set_on_auth_failed(self.checker_auth_failed)
+            account.checker.set_on_auth_succeeded(self.checker_auth_succeeded)
             account.checker.connect()
             
             accounts[credentails.username] = account
@@ -194,7 +187,7 @@ class CheckMail(Gio.Application):
                 self.remove_attention(self.compose_id(username, label))
             
         for username, account in self.accounts.items():
-            account.checker.queryInbox()
+            account.checker.fetch_inbox()
 
     def compose_label(self, username, label):
         return "%s (%s)" % (username, label)
@@ -294,6 +287,9 @@ class CheckMail(Gio.Application):
             self.show_notification("{0}".format(username), text.strip("\n"))
             self.play_sound(self.accounts[username].soundfile)
     
+    def on_new_mail(self, username, email, data):
+        print(username)
+    
     def source_clicked(self, app, source_id):
         '''called when a label is clicked in the indicator-applet and opens the corresponding gmail page'''
         # TODO: missing username
@@ -371,10 +367,15 @@ class CheckMail(Gio.Application):
     def shutdown(self):
         if self.accounts: 
             for username, account in self.accounts.items():
-                if account.checker : account.checker.die()
+                if account.checker : account.checker.stop()
     
 cm = CheckMail()
-reactor.registerGApplication(cm)
-reactor.addSystemEventTrigger('before', 'shutdown', cm.shutdown)
-reactor.run()
+cm.register()
+if not cm.get_is_remote():
+    # enables Ctr + C termination
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    cm.hold()
+
+cm.run()
+cm.shutdown()
 
