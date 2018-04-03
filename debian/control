@@ -3,10 +3,10 @@ Section: mail
 Priority: extra
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 XSBC-Original-Maintainer: Andrew Starr-Bochicchio <a.starr.b@gmail.com>
-X-Python-Version: >= 2.6
+X-Python-Version: >= 3.6
 Build-Depends: debhelper (>= 9),
        dh-python,
-       python (>= 2.6.6-3~),
+       python (>= 3.6),
        python-setuptools
 Standards-Version: 3.9.4
 Homepage: https://launchpad.net/gm-notify
@@ -15,9 +15,9 @@ Package: gm-notify
 Architecture: all
 Provides: ${python:Provides}
 Depends: python-twisted-words,
-        python-gi,
-        python-imaplib2,
-        python-apscheduler
+        python3-gi,
+        python3-imaplib2,
+        python3-apscheduler
         gir1.2-gtk-3.0,
         gir1.2-gnomekeyring-1.0,
         gir1.2-notify-0.7,

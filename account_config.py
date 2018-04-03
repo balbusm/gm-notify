@@ -17,7 +17,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-from __future__ import print_function
 
 import os
 import gettext
@@ -27,7 +26,7 @@ from gi.repository import GLib, Gtk
 from imap_mail_checker import ImapMailChecker
 import account_settings_provider
 
-_ = gettext.translation('gm-notify', fallback=True).ugettext
+_ = gettext.translation('gm-notify', fallback=True).gettext
 
 
 class AccountConfig:

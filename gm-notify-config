@@ -20,7 +20,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from __future__ import print_function
 
 import sys
 import os
@@ -38,7 +37,7 @@ from account_config import AccountConfig
 import account_settings_provider 
  
 
-_ = gettext.translation('gm-notify', fallback=True).ugettext
+_ = gettext.translation('gm-notify', fallback=True).gettext
 
 class PathNotFound(Exception): pass
 
@@ -169,7 +168,7 @@ class Window(Gtk.Application):
 
                 try:
                     shutil.copyfile(self.gm_notify_autostart_file, self.autostart_file)
-                    os.chmod(self.autostart_file, 0700)
+                    os.chmod(self.autostart_file, 0o700)
                 except IOError:
                     print("Warning: cannot write to path", self.autostart_file)
         else:

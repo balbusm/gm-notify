@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(  name='gm-notify',
-        version='1.0.0',
+        version='2.0.0',
         description='Highly Ubuntu integrated GMail Notifier',
         author='Mateusz Balbus',
         author_email='balbusmg@gmail.com',
