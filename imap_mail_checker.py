@@ -26,10 +26,10 @@ import quopri
 import re
 
 from bs4 import BeautifulSoup
-from apscheduler.schedulers.background import BackgroundScheduler
 
 from oauth2client import client, tools
 
+from gscheduler import GScheduler
 from keyring_storage import KeyringStorage
 
 AUTH_SCOPE = "https://mail.google.com/"
@@ -47,7 +47,7 @@ class ImapMailChecker:
         self.login = login
         self.running = False
         self.labels = labels
-        self.scheduler = BackgroundScheduler()
+        self.scheduler = GScheduler()
         # Add call on main thread in callbackworker
         self.on_fetch_cb = on_fetch_cb if on_fetch_cb else self.default_callback
         self.on_auth_succeeded = on_auth_succeeded if on_auth_succeeded else self.default_callback
