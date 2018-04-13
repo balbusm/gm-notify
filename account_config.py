@@ -23,7 +23,12 @@ import gettext
 
 from gi.repository import GLib, Gtk
 
-from imap_mail_checker import ImapMailChecker
+from rx import Observable
+from rx.concurrency import GtkScheduler
+from rx.core import Disposable
+
+import gm_log
+from atom_checker import AtomChecker
 import account_settings_provider
 
 _ = gettext.translation('gm-notify', fallback=True).gettext
@@ -33,6 +38,8 @@ class AccountConfig:
     def __init__(self, keys, creds):
         self.keys = keys
         self.creds = creds
+        self.api: AtomChecker = None
+        self.logger = gm_log.get_logger(__name__)
     
     def init_window(self, parent):
         if os.path.exists("gm-config.ui"):
@@ -103,12 +110,8 @@ class AccountConfig:
 
         return self.window
     
-    def setupApi(self, login = None):
-        api = ImapMailChecker(login)
-        api.set_on_auth_succeeded(self.credentials_valid)
-        api.set_on_auth_failed(self.credentials_invalid)
-        api.set_on_connection_error_cb(self.connection_error)
-        return api
+    def setupApi(self, login=None):
+        return AtomChecker(login)
     
     def close(self, widget = None, event = None):
         if self.api.is_running():
@@ -187,8 +190,31 @@ class AccountConfig:
             image.set_from_file("/usr/share/gm-notify/checking.gif")
             image.show()
             self.messagedialog.set_image(image)
-            self.api = self.setupApi(self.input_user.get_text())
-            self.api.connect()
+            username = self.input_user.get_text()
+            self.api = self.setupApi(username)
+
+            # terminate observable after first element
+
+            observable = Observable.create(self.api.connect) \
+                .subscribe_on(GtkScheduler()) \
+                .first() \
+                .observe_on(GtkScheduler()) \
+                .do_action(on_error=self.connection_error) \
+                .on_error_resume_next(Observable.empty()) \
+                .publish()
+
+            # successful login flow
+            observable.filter(lambda response: response.status_code == 200) \
+                .map(lambda response: response.text) \
+                .subscribe(self.credentials_valid)
+
+            # failed login flow
+            observable.filter(lambda response: response.status_code != 200) \
+                .map(lambda response: str(response.status_code) + " " + response.reason) \
+                .subscribe(self.credentials_invalid)
+
+            disposable: Disposable = observable.connect()
+
             return True
         return False
         
@@ -197,13 +223,15 @@ class AccountConfig:
             widget.close()
             self.api.stop()
     
-    def credentials_valid(self, username):
+    def credentials_valid(self, response: str):
         self.on_credentials_checked("gtk-yes", "Valid credentials", True)
 
-    def credentials_invalid(self, username, reason):
+    def credentials_invalid(self, reason: str):
+        self.logger.debug("Failed to login %s", reason)
         self.on_credentials_checked("gtk-stop", "Invalid credentials")
         
-    def connection_error(self, username, reason):
+    def connection_error(self, ex: Exception):
+        self.logger.debug("Error during logging", exc_info=ex)
         self.on_credentials_checked("gtk-stop", "Connection error")
         
     def on_credentials_checked(self, icon_name, text, valid = False):
@@ -215,8 +243,7 @@ class AccountConfig:
 #         self.button_validate.set_sensitive(True)
         editing = bool(self.creds.username)
         self.input_user.set_sensitive(not editing)
-        self.api.stop()
-        
+
         if not editing and valid:
             self.check_account_already_saved()
             

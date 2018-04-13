@@ -36,6 +36,9 @@ from gm_notify_keyring import Credentials
 from account_config import AccountConfig
 import account_settings_provider 
  
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 _ = gettext.translation('gm-notify', fallback=True).gettext
 

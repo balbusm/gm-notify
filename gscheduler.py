@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# imap_mail_checker.py v2.0
+# gscheduler.py v2.0
 # Provides settins to GMail notify
 #
 # Copyright (c) 2018, Mateusz Balbus <mate_ob@yahoo.com>
