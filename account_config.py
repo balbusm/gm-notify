@@ -39,6 +39,7 @@ class AccountConfig:
         self.keys = keys
         self.creds = creds
         self.api: AtomChecker = None
+        self.disposable: Disposable = None
         self.logger = gm_log.get_logger(__name__)
     
     def init_window(self, parent):
@@ -64,9 +65,9 @@ class AccountConfig:
         
         self.input_user = self.wTree.get_object("input_user")
         
-        #self.label_credentials = self.wTree.get_object("label_credentials")
+        self.label_credentials = self.wTree.get_object("label_credentials")
         
-        #self.image_credentials = self.wTree.get_object("image_credentials")
+        self.image_credentials = self.wTree.get_object("image_credentials")
         self.button_apply = self.wTree.get_object("button_apply")
 
         self.window.connect("delete_event", self.close)
@@ -114,8 +115,8 @@ class AccountConfig:
         return AtomChecker(login)
     
     def close(self, widget = None, event = None):
-        if self.api.is_running():
-            self.api.stop()
+        if self.disposable:
+            self.disposable.dispose()
         self.window.close()
         
 
@@ -185,7 +186,9 @@ class AccountConfig:
         '''check if the given credentials are valid'''
         # Change status text and disable input fields
         if self.input_user.get_text():
-            self.messagedialog = self.message_cb(self.on_check_credentials_cancel, "Please verify your account on Google page", Gtk.ButtonsType.CANCEL)
+            self.messagedialog = self.message_cb(self.on_check_credentials_cancel,
+                                                 _("Please verify your account on Google page"),
+                                                 Gtk.ButtonsType.CANCEL)
             image = Gtk.Image()
             image.set_from_file("/usr/share/gm-notify/checking.gif")
             image.show()
@@ -213,45 +216,52 @@ class AccountConfig:
                 .map(lambda response: str(response.status_code) + " " + response.reason) \
                 .subscribe(self.credentials_invalid)
 
-            disposable: Disposable = observable.connect()
+            if self.disposable:
+                self.disposable.dispose()
+            self.disposable: Disposable = observable.connect()
 
             return True
         return False
-        
+
     def on_check_credentials_cancel(self, widget, response_id):
         if response_id == Gtk.ResponseType.CANCEL:
             widget.close()
-            self.api.stop()
-    
+            self.disposable.dispose()
+
     def credentials_valid(self, response: str):
-        self.on_credentials_checked("gtk-yes", "Valid credentials", True)
+        self.on_credentials_checked("gtk-yes", "Authentication successful", True)
 
     def credentials_invalid(self, reason: str):
         self.logger.debug("Failed to login %s", reason)
-        self.on_credentials_checked("gtk-stop", "Invalid credentials")
-        
+        self.on_credentials_checked("gtk-stop", "Authentication failed")
+
     def connection_error(self, ex: Exception):
         self.logger.debug("Error during logging", exc_info=ex)
         self.on_credentials_checked("gtk-stop", "Connection error")
-        
-    def on_credentials_checked(self, icon_name, text, valid = False):
+
+    def on_credentials_checked(self, icon_name, text, valid= False):
         if self.messagedialog is not None:
             self.messagedialog.close()
             self.messagedialog = None
-#         self.image_credentials.set_from_icon_name(icon_name, Gtk.IconSize.MENU)
-#         self.label_credentials.set_label(_(text))
-#         self.button_validate.set_sensitive(True)
-        editing = bool(self.creds.username)
-        self.input_user.set_sensitive(not editing)
+        self.image_credentials.set_from_icon_name(icon_name, Gtk.IconSize.MENU)
+        self.image_credentials.set_tooltip_text(_(text))
+        self.label_credentials.set_label(_(text))
 
-        if not editing and valid:
-            self.check_account_already_saved()
-            
-    def check_account_already_saved(self):    
+#         self.button_validate.set_sensitive(True)
+        edit_mode = bool(self.creds.username)
+        self.input_user.set_sensitive(not edit_mode)
+
+        if valid:
+            if edit_mode or not self.check_account_already_saved():
+                self.save()
+                self.close()
+
+    def check_account_already_saved(self) -> bool:
         # Doesn't work since account has been just added in OAuth2 Get token
         if self.keys.has_credentials(self.input_user.get_text()):
             self.message_cb(self.should_override, "Account already exists. Override?", Gtk.ButtonsType.YES_NO)
-        else: self.save()
+            return True
+        return False
         
     def should_override(self, widget, response_id):
         if response_id == Gtk.ResponseType.OK:

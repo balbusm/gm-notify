@@ -101,7 +101,7 @@ class OAuth2(AuthBase):
     def __call__(self, r:  Request) -> Request:
         # modify and return the request
         access_token = self.get_access_token()
-        r.headers['Authorization1'] = "Bearer " + access_token
+        r.headers['Authorization'] = "Bearer " + access_token
         return r
 
     def get_access_token(self) -> str:
@@ -123,6 +123,6 @@ class OAuth2(AuthBase):
         parser = argparse.ArgumentParser(parents=[tools.argparser])
         flags = parser.parse_args()
 
-        credentials = tools.run_flow(flow, storage, flags, None)
+        credentials = tools.run_flow(flow, storage, flags)
         # TODO: add check of email address
         return credentials.access_token
