@@ -20,12 +20,14 @@
 
 import os
 import gettext
+from typing import List, Callable
 
 from gi.repository import GLib, Gtk
 
 from rx import Observable
 from rx.concurrency import GtkScheduler
 from rx.core import Disposable
+from rx.linq.connectableobservable import ConnectableObservable
 
 import gm_log
 from atom_checker import AtomChecker
@@ -35,11 +37,13 @@ _ = gettext.translation('gm-notify', fallback=True).gettext
 
 
 class AccountConfig:
+
+    CHECKING_FILE = "/usr/share/gm-notify/checking.gif"
+
     def __init__(self, keys, creds):
         self.keys = keys
         self.creds = creds
-        self.api: AtomChecker = None
-        self.disposable: Disposable = None
+        self.credentials_disposable_check: List[Disposable] = []
         self.logger = gm_log.get_logger(__name__)
     
     def init_window(self, parent):
@@ -65,9 +69,9 @@ class AccountConfig:
         
         self.input_user = self.wTree.get_object("input_user")
         
-        self.label_credentials = self.wTree.get_object("label_credentials")
+        self.label_verify = self.wTree.get_object("label_verify")
         
-        self.image_credentials = self.wTree.get_object("image_credentials")
+        self.image_verify = self.wTree.get_object("image_verify")
         self.button_apply = self.wTree.get_object("button_apply")
 
         self.window.connect("delete_event", self.close)
@@ -86,10 +90,13 @@ class AccountConfig:
         if self.creds.username:
             self.input_user.set_text(self.creds.username)
             self.input_user.set_sensitive(False)
-            
+            self.image_verify.set_from_file(AccountConfig.CHECKING_FILE)
+            self.label_verify.set_label(_("Checking..."))
+            observable = self.prepare_observable_for_credentials_check(self.creds.username, True, self.credentials_valid)
+            self.credentials_disposable_check.append(observable.connect())
+
         
         self.messagedialog = None
-        self.api = self.setupApi()
 
         # Sound
         self.wTree.get_object("checkbutton_sound").set_active(settings_provider.retrieve_sound_enabled())
@@ -111,22 +118,27 @@ class AccountConfig:
 
         return self.window
     
-    def setupApi(self, login=None):
-        return AtomChecker(login)
+    def setup_api(self, login=None, avoid_logging_on_google_page: bool=False) -> AtomChecker:
+        return AtomChecker(login, avoid_logging_on_google_page=avoid_logging_on_google_page)
     
     def close(self, widget = None, event = None):
-        if self.disposable:
-            self.disposable.dispose()
-        self.window.close()
-        
+        self.dispose_all_checks()
 
-    def message_cb(self, action, text, buttons = Gtk.ButtonsType.OK_CANCEL):
+        self.window.close()
+
+    def dispose_all_checks(self):
+        for disposable in self.credentials_disposable_check:
+            disposable.dispose()
+        self.credentials_disposable_check.clear()
+
+    def message_cb(self, action, text, secondary_text=None, buttons=Gtk.ButtonsType.OK_CANCEL):
         # a Gtk.MessageDialog
         messagedialog = Gtk.MessageDialog(parent=self.window,
                                           flags=Gtk.DialogFlags.MODAL,
                                           type=Gtk.MessageType.WARNING,
                                           buttons=buttons,
                                           message_format=_(text))
+        messagedialog.format_secondary_text(secondary_text)
         # connect the response (of the button clicked) to the function
         # dialog_response()
         dialog_action = lambda widget, response_id: self.dialog_close(action, widget, response_id)
@@ -143,7 +155,7 @@ class AccountConfig:
     def apply(self, widget):
         self.check_user()
         if not self.check_credentials():
-            self.message_cb(None, "Provide email account", Gtk.ButtonsType.OK)
+            self.message_cb(None, "Provide email account", buttons=Gtk.ButtonsType.OK)
     
     def save(self):
         '''saves the entered data and closes the app'''
@@ -187,84 +199,99 @@ class AccountConfig:
         # Change status text and disable input fields
         if self.input_user.get_text():
             self.messagedialog = self.message_cb(self.on_check_credentials_cancel,
-                                                 _("Please verify your account on Google page"),
+                                                 _("Verifying your account."),
+                                                 _("It may require login on Google page"),
                                                  Gtk.ButtonsType.CANCEL)
-            image = Gtk.Image()
-            image.set_from_file("/usr/share/gm-notify/checking.gif")
-            image.show()
+            image = self.__prepare_checking_image()
             self.messagedialog.set_image(image)
             username = self.input_user.get_text()
-            self.api = self.setupApi(username)
 
-            # terminate observable after first element
+            observable = self.prepare_observable_for_credentials_check(username, False, self.credentials_valid_and_applied)
 
-            observable = Observable.create(self.api.connect) \
-                .subscribe_on(GtkScheduler()) \
-                .first() \
-                .observe_on(GtkScheduler()) \
-                .do_action(on_error=self.connection_error) \
-                .on_error_resume_next(Observable.empty()) \
-                .publish()
-
-            # successful login flow
-            observable.filter(lambda response: response.status_code == 200) \
-                .map(lambda response: response.text) \
-                .subscribe(self.credentials_valid)
-
-            # failed login flow
-            observable.filter(lambda response: response.status_code != 200) \
-                .map(lambda response: str(response.status_code) + " " + response.reason) \
-                .subscribe(self.credentials_invalid)
-
-            if self.disposable:
-                self.disposable.dispose()
-            self.disposable: Disposable = observable.connect()
+            self.dispose_all_checks()
+            self.credentials_disposable_check.append(observable.connect())
 
             return True
         return False
 
+    def prepare_observable_for_credentials_check(self, username: str,
+                                                 avoid_logging_on_google_page: bool,
+                                                 credentials_valid_callback: Callable[[str], None]) -> ConnectableObservable:
+
+        api = self.setup_api(username, avoid_logging_on_google_page)
+
+        # terminate observable after first element
+        observable = Observable.create(api.connect, ) \
+            .subscribe_on(GtkScheduler()) \
+            .first() \
+            .observe_on(GtkScheduler()) \
+            .do_action(on_error=self.connection_error) \
+            .on_error_resume_next(Observable.empty()) \
+            .publish()
+
+        # successful login flow
+        observable.filter(lambda response: response.status_code == 200) \
+            .map(lambda response: response.text) \
+            .subscribe(credentials_valid_callback)
+
+        # failed login flow
+        observable.filter(lambda response: response.status_code != 200) \
+            .map(lambda response: str(response.status_code) + " " + response.reason) \
+            .subscribe(self.credentials_invalid)
+
+        return observable
+
     def on_check_credentials_cancel(self, widget, response_id):
         if response_id == Gtk.ResponseType.CANCEL:
             widget.close()
-            self.disposable.dispose()
+            self.dispose_all_checks()
+
+    def credentials_valid_and_applied(self, response: str):
+        self.credentials_valid(response)
+
+        if self.__is_edit_mode() or not self.check_account_already_saved():
+            self.save()
+            self.close()
 
     def credentials_valid(self, response: str):
-        self.on_credentials_checked("gtk-yes", "Authentication successful", True)
+        self.on_credentials_checked("gtk-yes", _("Authentication successful"))
 
     def credentials_invalid(self, reason: str):
         self.logger.debug("Failed to login %s", reason)
-        self.on_credentials_checked("gtk-stop", "Authentication failed")
+        self.on_credentials_checked("gtk-stop", _("Authentication failed"))
 
     def connection_error(self, ex: Exception):
         self.logger.debug("Error during logging", exc_info=ex)
-        self.on_credentials_checked("gtk-stop", "Connection error")
+        self.on_credentials_checked("gtk-stop", _("Connection error"))
 
-    def on_credentials_checked(self, icon_name, text, valid= False):
-        if self.messagedialog is not None:
-            self.messagedialog.close()
+    def on_credentials_checked(self, icon_name, text):
+        if self.messagedialog:
+            self.messagedialog.destroy()
             self.messagedialog = None
-        self.image_credentials.set_from_icon_name(icon_name, Gtk.IconSize.MENU)
-        self.image_credentials.set_tooltip_text(_(text))
-        self.label_credentials.set_label(_(text))
+        self.image_verify.set_from_icon_name(icon_name, Gtk.IconSize.MENU)
+        self.image_verify.set_tooltip_text(text)
+        self.label_verify.set_label(text)
 
 #         self.button_validate.set_sensitive(True)
-        edit_mode = bool(self.creds.username)
-        self.input_user.set_sensitive(not edit_mode)
-
-        if valid:
-            if edit_mode or not self.check_account_already_saved():
-                self.save()
-                self.close()
 
     def check_account_already_saved(self) -> bool:
         # Doesn't work since account has been just added in OAuth2 Get token
         if self.keys.has_credentials(self.input_user.get_text()):
-            self.message_cb(self.should_override, "Account already exists. Override?", Gtk.ButtonsType.YES_NO)
+            self.message_cb(self.should_override, _("Account already exists. Override?"), buttons=Gtk.ButtonsType.YES_NO)
             return True
         return False
         
     def should_override(self, widget, response_id):
         if response_id == Gtk.ResponseType.OK:
             self.save()
-        
-        
+            self.close()
+
+    def __is_edit_mode(self) -> bool:
+        return bool(self.creds.username)
+
+    def __prepare_checking_image(self):
+        image = Gtk.Image()
+        image.set_from_file(AccountConfig.CHECKING_FILE)
+        image.show()
+        return image
+

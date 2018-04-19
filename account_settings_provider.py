@@ -21,16 +21,18 @@
 
 from gi.repository import Gio
 
+
 def create_settings_provider(username):
     if username:
         return AccountSettingsProvider(username)
     else:
         return DefaultSettingsProvider()
 
+
 class AccountSettingsProvider:
     def __init__(self, username):
         self.client = Gio.Settings("net.launchpad.gm-notify.account", "/net/launchpad/gm-notify/" + username + "/")
-    
+
     def retrieve_sound_file(self, default_file = None):
         soundfile = self.client.get_string("soundfile")
         if soundfile == '':

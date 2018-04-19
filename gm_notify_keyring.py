@@ -1,14 +1,14 @@
 
-__version__ = "$Revision: 14294 $"
-
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('GnomeKeyring', '1.0')
 from gi.repository import GnomeKeyring, Gtk
 from collections import namedtuple
+
+from __version import __version__
+
 Credentials = namedtuple("Credentials", ["username", "password"])
 Credentials.__new__.__defaults__ = ("", "")
-__version__ = "2.0"
 
 def attributes(d):
     '''Converts a dictionary to a GnomeKeyring.Attribute array'''

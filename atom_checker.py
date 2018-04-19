@@ -23,7 +23,7 @@
 import time
 from datetime import datetime
 import argparse
-from typing import List, Callable
+from typing import List, Callable, Optional
 
 import requests
 from requests import Session, Request
@@ -32,6 +32,7 @@ from requests.auth import AuthBase
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from oauth2client import client, tools
+from oauth2client.client import Storage
 
 from rx import Observer
 
@@ -46,12 +47,14 @@ IMAP_AUTH_METHOD = "XOAUTH2"
 IDLE_TIME = 3
 IDLE_JOB_ID = 'idle'
 
+
 class AtomChecker:
 
-    def __init__(self, login: str, labels: List[str]=("Inbox",), interval: int = 60):
+    def __init__(self, login: str, labels: List[str]=("Inbox",), interval: int = 60, avoid_logging_on_google_page: bool=False):
         self.login = login
         self.labels = labels
         self.interval = interval
+        self.avoid_logging_on_google_page = avoid_logging_on_google_page
         self.scheduler = BackgroundScheduler()
         self.observer: Observer = None
         self.session: Session = None
@@ -75,7 +78,8 @@ class AtomChecker:
             self.logger.debug("Observer stopped. Ignoring send_request")
             return
         try:
-            response = self.session.get("https://mail.google.com/mail/feed/atom", auth=OAuth2(self.login))
+            response = self.session.get("https://mail.google.com/mail/feed/atom",
+                                        auth=OAuth2(self.login, self.avoid_logging_on_google_page))
             self.observer.on_next(response)
         except Exception as ex:
             self.observer.on_error(ex)
@@ -85,7 +89,7 @@ class AtomChecker:
         try:
             self.logger.debug("Stopping atom checker...")
             self.scheduler.remove_all_jobs()
-            self.scheduler.shutdown()
+            self.scheduler.shutdown(wait=False)
             self.logger.debug("Stopping atom checker...Done")
         except Exception as ex:
             self.logger.exception("Exception during stopping", exc_info=ex)
@@ -93,9 +97,10 @@ class AtomChecker:
 
 class OAuth2(AuthBase):
 
-    def __init__(self, login: str):
+    def __init__(self, login: str, only_local: bool=False):
         # setup any auth-related data here
         self.login = login
+        self.only_local = only_local
         self.logger = gm_log.get_logger(__name__)
 
     def __call__(self, r:  Request) -> Request:
@@ -106,6 +111,14 @@ class OAuth2(AuthBase):
 
     def get_access_token(self) -> str:
         storage = KeyringStorage(self.login)
+        access_token = self.get_access_token_from_storage(storage)
+        if access_token or self.only_local:
+            return  access_token
+
+        # TODO: add check of email address
+        return self.acquire_access_token(storage)
+
+    def get_access_token_from_storage(self, storage: Storage) -> Optional[str]:
         credentials = storage.get()
         try:
             if credentials:
@@ -113,8 +126,9 @@ class OAuth2(AuthBase):
         except client.HttpAccessTokenRefreshError as ex:
             # refresh token expired go for authentication
             self.logger.warning("Cannot get access token", exc_info=ex)
-            pass
+            return None
 
+    def acquire_access_token(self, storage: Storage):
         flow = client.flow_from_clientsecrets(
             SECRET_LOCATION,
             scope=AUTH_SCOPE,
@@ -123,6 +137,5 @@ class OAuth2(AuthBase):
         parser = argparse.ArgumentParser(parents=[tools.argparser])
         flags = parser.parse_args()
 
-        credentials = tools.run_flow(flow, storage, flags)
-        # TODO: add check of email address
-        return credentials.access_token
+        return tools.run_flow(flow, storage, flags).access_token
+

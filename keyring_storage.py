@@ -22,6 +22,7 @@ import gm_notify_keyring as keyring
 
 from oauth2client.client import Storage, Credentials
 
+
 class KeyringStorage(Storage):
     def __init__(self, user, lock=None):
         super(KeyringStorage, self).__init__()

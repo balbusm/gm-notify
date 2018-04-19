@@ -35,7 +35,6 @@ gi.require_version('MessagingMenu', '1.0')
 gi.require_version('Notify', '0.7')
 from gi.repository import Gio, GLib, Gst, MessagingMenu, Notify
 
-from imap_mail_checker import ImapMailChecker
 import account_settings_provider
 import gm_notify_keyring as keyring
 
@@ -230,7 +229,7 @@ class CheckMail(Gio.Application):
     def update_count(self, username, count):
         '''Updates the count for all the mailboxes'''
         account = self.accounts[username]
-        for mailbox in count.iteritems():
+        for mailbox in count.items():
             if mailbox[0] == "inbox" and account.ignore_inbox:
                 continue
             
