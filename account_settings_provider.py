@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # settings_provider.py v0.10.3
 # Provides settins to GMail notify

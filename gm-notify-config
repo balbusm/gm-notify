@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # gm-notify-config v1.0
@@ -125,7 +125,7 @@ class Window(Gtk.Application):
         self.autostart_file = os.path.expanduser("~/.config/autostart/gm-notify.desktop")
         self.wTree.get_object("checkbutton_autostart").set_active(os.path.exists(self.autostart_file))
         
-    def update_accounts(self, accounts, keys):
+    def update_accounts(self, accounts):
         self.logger.debug("update_accounts")
         accounts.clear()
         user_list = account_settings_provider.list_accounts()
@@ -137,7 +137,7 @@ class Window(Gtk.Application):
         self.logger.debug("on_update_accounts: Event %s WindowState %s", str(event.type), str(event.new_window_state))
         if (event.type == Gdk.EventType.WINDOW_STATE
             and event.new_window_state == Gdk.WindowState.FOCUSED):
-            self.update_accounts(self.accounts, self.keys)
+            self.update_accounts(self.accounts)
     
     def on_modify_account(self, widget, path, column):
         iter = self.accounts.get_iter(path)

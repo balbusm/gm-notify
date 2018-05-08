@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # account_config.py v0.10.3
 # Provides settins to GMail notify
@@ -162,7 +162,6 @@ class AccountConfig:
         '''saves the entered data and closes the app'''
         user = self.input_user.get_text()
 
-        
         settings_provider = account_settings_provider.create_settings_provider(user)
         # Mailboxes
         labels = []
