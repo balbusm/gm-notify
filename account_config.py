@@ -20,7 +20,7 @@
 
 import os
 import gettext
-from typing import List, Callable
+from typing import List, Callable, Optional
 
 from gi.repository import GLib, Gtk
 
@@ -44,6 +44,7 @@ class AccountConfig:
         self.keys = keys
         self.creds = creds
         self.credentials_disposable_check: List[Disposable] = []
+        self.creds_valid: Optional[bool] = None
         self.logger = gm_log.get_logger(__name__)
     
     def init_window(self, parent):
@@ -124,7 +125,7 @@ class AccountConfig:
     def close(self, widget = None, event = None):
         self.dispose_all_checks()
 
-        self.window.close()
+        self.window.destroy()
 
     def dispose_all_checks(self):
         for disposable in self.credentials_disposable_check:
@@ -200,17 +201,19 @@ class AccountConfig:
         if self.input_user.get_text():
             self.messagedialog = self.message_cb(self.on_check_credentials_cancel,
                                                  _("Verifying your account."),
-                                                 _("It may require login on Google page"),
+                                                 _("It may require login in your web browser on Google page"),
                                                  Gtk.ButtonsType.CANCEL)
             image = self.__prepare_checking_image()
             self.messagedialog.set_image(image)
             username = self.input_user.get_text()
 
-            observable = self.prepare_observable_for_credentials_check(username, False, self.credentials_valid_and_applied)
-
             self.dispose_all_checks()
-            self.credentials_disposable_check.append(observable.connect())
 
+            if not self.creds_valid:
+                observable = self.prepare_observable_for_credentials_check(username, False, self.credentials_valid_and_applied)
+                self.credentials_disposable_check.append(observable.connect())
+            else:
+                self.credentials_valid_and_applied(None)
             return True
         return False
 
@@ -246,25 +249,26 @@ class AccountConfig:
             widget.close()
             self.dispose_all_checks()
 
-    def credentials_valid_and_applied(self, response: str):
+    def credentials_valid_and_applied(self, response: Optional[str]):
         self.credentials_valid(response)
 
-        if self.__is_edit_mode() or not self.check_account_already_saved():
+        if not self.check_account_already_saved():
             self.save()
             self.close()
 
-    def credentials_valid(self, response: str):
-        self.on_credentials_checked("gtk-yes", _("Authentication successful"))
+    def credentials_valid(self, response: Optional[str]):
+        self.on_credentials_checked(True, "gtk-yes", _("Authentication successful"))
 
     def credentials_invalid(self, reason: str):
         self.logger.debug("Failed to login %s", reason)
-        self.on_credentials_checked("gtk-stop", _("Authentication failed"))
+        self.on_credentials_checked(False, "gtk-stop", _("Authentication failed"))
 
     def connection_error(self, ex: Exception):
         self.logger.debug("Error during logging", exc_info=ex)
-        self.on_credentials_checked("gtk-stop", _("Connection error"))
+        self.on_credentials_checked(None, "gtk-stop", _("Connection error"))
 
-    def on_credentials_checked(self, icon_name, text):
+    def on_credentials_checked(self, creds_valid: Optional[bool], icon_name: str, text: str):
+        self.creds_valid = creds_valid
         if self.messagedialog:
             self.messagedialog.destroy()
             self.messagedialog = None
@@ -275,14 +279,17 @@ class AccountConfig:
 #         self.button_validate.set_sensitive(True)
 
     def check_account_already_saved(self) -> bool:
-        # Doesn't work since account has been just added in OAuth2 Get token
-        if self.keys.has_credentials(self.input_user.get_text()):
+        if self.__is_edit_mode():
+            return False
+        user_list = account_settings_provider.list_accounts()
+        current_user = self.input_user.get_text()
+        if current_user in user_list:
             self.message_cb(self.should_override, _("Account already exists. Override?"), buttons=Gtk.ButtonsType.YES_NO)
             return True
         return False
         
     def should_override(self, widget, response_id):
-        if response_id == Gtk.ResponseType.OK:
+        if response_id == Gtk.ResponseType.YES:
             self.save()
             self.close()
 

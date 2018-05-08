@@ -28,6 +28,7 @@ import subprocess
 import shutil
 
 import gi
+
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gio, Gtk, GLib, Gdk
 
@@ -35,14 +36,15 @@ import gm_notify_keyring as keyring
 from gm_notify_keyring import Credentials
 from account_config import AccountConfig
 import account_settings_provider 
- 
-import logging
 
-logging.basicConfig(level=logging.DEBUG)
+import gm_log
+
 
 _ = gettext.translation('gm-notify', fallback=True).gettext
 
+
 class PathNotFound(Exception): pass
+
 
 def get_executable_path(name):
     path = "%s/%s" % (os.getcwd(), name)
@@ -53,6 +55,7 @@ def get_executable_path(name):
     if os.path.exists(path) and os.access(path, os.X_OK): return path
     raise PathNotFound("%s not found" % name)
 
+
 class Window(Gtk.Application):
     def __init__(self):
         super(Window, self).__init__(application_id="net.launchpad.gm-notify-config",
@@ -60,8 +63,11 @@ class Window(Gtk.Application):
         self.window = None
         self.connect("activate", self.on_activate)
 
+        self.logger = gm_log.get_logger("gm-notify-config")
+
+
     def run(self, args):
-        self.register();
+        self.register()
         if self.get_is_remote():
             self.activate()
         else:
@@ -97,7 +103,7 @@ class Window(Gtk.Application):
         self.accounts = self.wTree.get_object("accounts")
 
         self.accounts_treeview = self.wTree.get_object("accounts_treeview")
-        self.accounts_treeview.connect("row-activated", self.on_modify_account);
+        self.accounts_treeview.connect("row-activated", self.on_modify_account)
         
         self.wTree.get_object("notebook_main").set_current_page(0)
         
@@ -120,14 +126,15 @@ class Window(Gtk.Application):
         self.wTree.get_object("checkbutton_autostart").set_active(os.path.exists(self.autostart_file))
         
     def update_accounts(self, accounts, keys):
+        self.logger.debug("update_accounts")
         accounts.clear()
-        if not self.keys.has_any_users():
-            return
-        for user in keys.get_all_users():
+        user_list = account_settings_provider.list_accounts()
+
+        for user in user_list:
             accounts.append((user,))
     
     def on_update_accounts(self, widget, event):
-        print("Event %s WindowState %s" % (str(event.type), str(event.new_window_state)))
+        self.logger.debug("on_update_accounts: Event %s WindowState %s", str(event.type), str(event.new_window_state))
         if (event.type == Gdk.EventType.WINDOW_STATE
             and event.new_window_state == Gdk.WindowState.FOCUSED):
             self.update_accounts(self.accounts, self.keys)
@@ -172,14 +179,14 @@ class Window(Gtk.Application):
                 try:
                     shutil.copyfile(self.gm_notify_autostart_file, self.autostart_file)
                     os.chmod(self.autostart_file, 0o700)
-                except IOError:
-                    print("Warning: cannot write to path", self.autostart_file)
+                except IOError as ex:
+                    self.logger.warning("Warning: cannot write to path %s", self.autostart_file, exc_info=ex)
         else:
             if os.path.exists(self.autostart_file):
                 try:
                     os.unlink(self.autostart_file)
-                except:
-                    print("Warning: cannot delete", self.autostart_file)
+                except Exception as ex:
+                    self.logger.warning("Warning: cannot delete %s", self.autostart_file, exc_info=ex)
 
         # Start gm-notify itself
         subprocess.Popen(get_executable_path("gm-notify"))

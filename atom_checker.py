@@ -113,7 +113,7 @@ class OAuth2(AuthBase):
         storage = KeyringStorage(self.login)
         access_token = self.get_access_token_from_storage(storage)
         if access_token or self.only_local:
-            return  access_token
+            return access_token
 
         # TODO: add check of email address
         return self.acquire_access_token(storage)

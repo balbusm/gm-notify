@@ -21,6 +21,11 @@
 
 from gi.repository import Gio
 
+from dconf import DconfClient
+
+ROOT_PATH = "/net/launchpad/gm-notify/"
+SCHEMA_ID = "net.launchpad.gm-notify.account"
+
 
 def create_settings_provider(username):
     if username:
@@ -29,9 +34,14 @@ def create_settings_provider(username):
         return DefaultSettingsProvider()
 
 
+def list_accounts():
+    client = DconfClient()
+    return client.list(ROOT_PATH)
+
+
 class AccountSettingsProvider:
     def __init__(self, username):
-        self.client = Gio.Settings("net.launchpad.gm-notify.account", "/net/launchpad/gm-notify/" + username + "/")
+        self.client = Gio.Settings(SCHEMA_ID, ROOT_PATH + username + "/")
 
     def retrieve_sound_file(self, default_file = None):
         soundfile = self.client.get_string("soundfile")

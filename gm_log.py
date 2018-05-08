@@ -23,6 +23,8 @@
 
 import logging
 
+logging.basicConfig(level=logging.DEBUG)
+
 
 def get_logger(name: str) -> logging.Logger:
     return logging.getLogger("gm_notify." + name)
