@@ -77,12 +77,13 @@ class AtomChecker:
         if self.observer.is_stopped:
             self.logger.debug("Observer stopped. Ignoring send_request")
             return
-        try:
-            response = self.session.get("https://mail.google.com/mail/feed/atom",
-                                        auth=OAuth2(self.login, self.avoid_logging_on_google_page))
-            self.observer.on_next(response)
-        except Exception as ex:
-            self.observer.on_error(ex)
+        for label in self.labels:
+            try:
+                response = self.session.get("https://mail.google.com/mail/feed/atom/" + label,
+                                            auth=OAuth2(self.login, self.avoid_logging_on_google_page))
+                self.observer.on_next(AtomMessage(self.login, label, response))
+            except Exception as ex:
+                self.observer.on_error(ex)
 
     def stop(self) -> None:
         # rx.disposable cannot throw an exception as it it's swallowed
@@ -139,3 +140,9 @@ class OAuth2(AuthBase):
 
         return tools.run_flow(flow, storage, flags).access_token
 
+
+class AtomMessage:
+    def __init__(self, account_name, label, response):
+        self.account_name = account_name
+        self.label = label
+        self.response = response

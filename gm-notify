@@ -28,6 +28,13 @@ import gettext
 import webbrowser
 import re
 import signal
+from typing import List, Dict
+
+from bs4 import BeautifulSoup
+from rx import Observable
+from rx.concurrency import GtkScheduler
+
+from atom_checker import AtomChecker
 
 import gi
 gi.require_version('Gst', '1.0')
@@ -36,9 +43,9 @@ gi.require_version('Notify', '0.7')
 from gi.repository import Gio, GLib, Gst, MessagingMenu, Notify
 
 import account_settings_provider
-import gm_notify_keyring as keyring
+import gm_log
 
-_ = gettext.translation('gm-notify', fallback=True).ugettext
+_ = gettext.translation('gm-notify', fallback=True).gettext
 
 MAILBOXES_NAMES = { "inbox": _("Inbox") }
 
@@ -48,7 +55,9 @@ GMAIL_DOMAINS = ['gmail.com','googlemail.com']
 
 EMAIL_RETRIEVAL_ERROR = "--retrieval-error"
 
+
 class PathNotFound(Exception): pass
+
 
 def get_executable_path(name):
     path = "%s/%s" % (os.getcwd(), name)
@@ -59,8 +68,9 @@ def get_executable_path(name):
     if os.path.exists(path) and os.access(path, os.X_OK): return path
     raise PathNotFound("%s not found" % name)
 
+
 class Account:
-    def __init__(self, username):
+    def __init__(self, username: str):
         self.username = username
         # check if we use Google Apps to start the correct webinterface
         self.domain = self._retrieve_domain(username)
@@ -69,12 +79,15 @@ class Account:
         self.ignore_inbox = None
         self.labels = None
         self.use_mail_client = None
+        self.disposable = None
+
     def _retrieve_domain(self, username):
         domain_regex = re.search("@([\w.]+)", username)
         domain = domain_regex.group(1)
         if domain in GMAIL_DOMAINS:
-            return None;
+            return None
         return domain
+
 
 class CheckMail(Gio.Application):
     def __init__(self):
@@ -88,6 +101,7 @@ class CheckMail(Gio.Application):
         self._counts = {}
         self.accounts = None
         self.connect("activate", self.on_activate)
+        self.logger = gm_log.get_logger("gm-notify")
 
     def play_sound(self, name):
         '''Uses GSound to play the music'''
@@ -101,11 +115,11 @@ class CheckMail(Gio.Application):
         self.player.set_property("uri", "file://" + name)
         result = self.player.set_state(Gst.State.PLAYING)
         if result == Gst.StateChangeReturn.FAILURE:
-            print("Unable to play " + name)
+            self.logger.warning("Unable to play %s", name)
 
     def on_remote_quit(self, action, args):
         '''Stops the application when the "remote-quit" action is activated'''
-        reactor.stop()
+        self.quit()
 
     def on_activate(self, app):
         '''When first receiving the activate signal, initialize the primary
@@ -127,33 +141,33 @@ class CheckMail(Gio.Application):
         if not Notify.init(_("GMail Notifier")):
             sys.exit(-1)
 
-        keys = keyring.Keyring("GMail", "mail.google.com", "http")
-        if keys.has_any_credentials():
-            creds = keys.get_all_credentials()
-        else:
-            print("Failed to get credentials")
-            # Start gm-notify-config if no credentials are found
-            try:
-                subprocess.call(get_executable_path("gm-notify-config"))
-            except PathNotFound:
-                print(_("gm-notify-config utility was not found"))
-
+        available_accounts = account_settings_provider.list_accounts()
+        if not available_accounts:
+            self.logger.info("Failed to get credentials")
+            self.run_config_app()
             sys.exit(-1)
-        
+
         # Messaging Menu integration
         self._m_menu = MessagingMenu.App.new("gm-notify.desktop")
         self._m_menu.register()
         self._m_menu.connect("activate-source", self.source_clicked)
 
-        self.accounts = self.init_accounts(creds)
+        self.accounts = self.init_accounts(available_accounts)
 
+    def run_config_app(self) -> None:
+        # Start gm-notify-config if no credentials are found
+        try:
+            subprocess.call(get_executable_path("gm-notify-config"))
+        except PathNotFound:
+            self.logger.warning(_("gm-notify-config utility was not found"))
 
-    def init_accounts(self, creds):
+    def init_accounts(self, available_accounts_names: List[str]) -> Dict[str, Account]:
         accounts = {}
-        for credentails in creds:
-            account = Account(credentails.username)
+        for account_name in available_accounts_names:
+            account = Account(account_name)
+            accounts[account_name] = account
             
-            client = account_settings_provider.create_settings_provider(account.username)
+            client = account_settings_provider.create_settings_provider(account_name)
             account.client = client 
             
             account.use_mail_client = client.retrieve_use_mail_client()
@@ -168,13 +182,32 @@ class CheckMail(Gio.Application):
             # Retrieve the mailbox we're gonna check
             account.labels = client.retrieve_labels()
             account.labels.insert(0, "inbox")
-            account.checker = ImapMailChecker(account.username, account.labels[1:],None, self.on_new_mail)
-            account.checker.set_on_connection_error_cb(self.checker_connection_error)
-            account.checker.set_on_auth_failed(self.checker_auth_failed)
-            account.checker.set_on_auth_succeeded(self.checker_auth_succeeded)
-            account.checker.connect()
-            
-            accounts[credentails.username] = account
+
+            account.checker = AtomChecker(account_name, account.labels)
+
+            observable = Observable.create(account.checker.connect, ) \
+                .subscribe_on(GtkScheduler()) \
+                .observe_on(GtkScheduler()) \
+                .do_action(on_error=self.checker_connection_error) \
+                .on_error_resume_next(Observable.empty()) \
+                .publish()
+
+            # successful login flow
+            observable.filter(lambda atom_message: atom_message.response.status_code == 200) \
+                .do_action(lambda atom_message: self.logger.info("> %s: %s",
+                                                                atom_message.account_name,
+                                                                atom_message.response.text)) \
+                .map(lambda atom_message:
+                                 (atom_message.account_name, atom_message.label, BeautifulSoup(atom_message.response.text, "xml"))) \
+                .do_action(lambda soup_message: self.update_count(*soup_message)) \
+                .subscribe(lambda soup_message: self.new_mail(*soup_message))
+            # failed login flow
+            observable.filter(lambda atom_message: atom_message.response.status_code != 200) \
+                .map(lambda atom_message: (atom_message.account_name, str(atom_message.response.status_code) + " " + atom_message.response.reason)) \
+                .subscribe(lambda error_message: self.checker_auth_failed(*error_message))
+
+            account.disposable = observable.connect()
+
         return accounts
 
     def indicator_clicked(self):
@@ -202,20 +235,20 @@ class CheckMail(Gio.Application):
         if self._m_menu.has_source(label):
             self._m_menu.remove_attention(label)
 
-    def has_source(self, username, label):
+    def has_source(self, account_name: str, label: str) -> bool:
         '''Returns true if we have this label, or if we don't and it is in our
         mailboxes list, create it'''
-        account = self.accounts[username]
+        account = self.accounts[account_name]
         if label == "inbox" and account.ignore_inbox:
             return False
         elif label in account.labels:
-            mail_label = self.compose_id(username, label)
+            mail_label = self.compose_id(account_name, label)
             if not self._m_menu.has_source(mail_label):
                 if label in MAILBOXES_NAMES:
                     name = MAILBOXES_NAMES[label]
                 else:
                     name = label
-                name_label = self.compose_label(username, name)
+                name_label = self.compose_label(account_name, name)
                 if label == "inbox":
                     self._m_menu.insert_source_with_string(0, mail_label, None, name_label, _("empty"))
                 else:
@@ -225,69 +258,69 @@ class CheckMail(Gio.Application):
             return True
         else:
             return False
-    
-    def update_count(self, username, count):
-        '''Updates the count for all the mailboxes'''
-        account = self.accounts[username]
-        for mailbox in count.items():
-            if mailbox[0] == "inbox" and account.ignore_inbox:
-                continue
-            
-            if self.has_source(username, mailbox[0]):
-                # Get the last count
-                last_count = 0
-                mail_label = self.compose_id(username, mailbox[0])
-                if mail_label in self._counts:
-                    last_count = self._counts[mail_label]
-                current_count = int(mailbox[1])
 
-                # Remove attention if the count has decreased
-                if last_count > current_count:
-                    self._m_menu.remove_attention(mail_label)
-                if current_count > 0:
-                    self._m_menu.set_source_count(mail_label, current_count)
-                # Remove the source if 0 messages, to save space
-                else:
-                    self._m_menu.remove_source(mail_label)
-                self._counts[mail_label] = current_count
+    def update_count(self, account_name: str, label: str, soup: BeautifulSoup) -> None:
+        '''Updates the count for all the mailboxes'''
+        account = self.accounts[account_name]
+        if label == "inbox" and account.ignore_inbox:
+            return
+
+        if self.has_source(account_name, label):
+            # Get the last count
+            last_count = 0
+            mail_label = self.compose_id(account_name, label)
+            if mail_label in self._counts:
+                last_count = self._counts[mail_label]
+            current_count = int(soup.fullcount.text)
+
+            # Remove attention if the count has decreased
+            if last_count > current_count:
+                self._m_menu.remove_attention(mail_label)
+            if current_count > 0:
+                self._m_menu.set_source_count(mail_label, current_count)
+            # Remove the source if 0 messages, to save space
+            else:
+                self._m_menu.remove_source(mail_label)
+            self._counts[mail_label] = current_count
     
-    def new_mail(self, username, mails):
+    def new_mail(self, account_name: str, label: str, soup: BeautifulSoup) -> None:
         '''Takes mailbox name and titles of mails, to display notification and add indicators'''
-        account = self.accounts[username]
-        text = ""
+        account = self.accounts[account_name]
         # aggregate the titles of the messages... cut the string if longer than 30 chars
-        for mail in mails:
-            got_label = False
-            for label in mail['labels']:
-                if label == u"^i": label = "inbox"
-                if label == "inbox" and account.ignore_inbox:
-                    continue
-                if self.has_source(username, label):
-                    got_label = True
-                    mail_label = self.compose_id(username, label)
-                    self._m_menu.draw_attention(mail_label)
-            if not got_label: continue
-            
-            if "sender_name" in mail: text += mail['sender_name'] + ":\n"
-            elif "sender_address" in mail: text += mail['sender_address'] + ":\n"
-            
-            if "subject" in mail and mail['subject']:
-                title = mail['subject']
+        got_label = False
+        if label == "inbox" and account.ignore_inbox:
+            return
+        if self.has_source(account_name, label):
+            got_label = True
+            mail_label = self.compose_id(account_name, label)
+            self._m_menu.draw_attention(mail_label)
+        if not got_label:
+            return
+
+        for entry in soup.find_all("entry"):
+            text = ""
+
+            author_name = entry.author.find("name")
+            if author_name:
+                text += author_name.text + ":\n"
+            elif entry.author.email:
+                text += entry.author.email.text + ":\n"
+
+            if entry.title:
+                title = entry.title.text
                 if len(title) > 30:
                     title = title[:30] + "..."
-            elif "snippet" in mail and mail['snippet']:
-                title = mail['snippet'][:30] + "..."
+            elif entry.summary:
+                title = entry.summary.text[:30] + "..."
             else:
                 title = _("(no content)")
             text += "- " + title + "\n"
-            
-        if text:
-            self.show_notification("{0}".format(username), text.strip("\n"))
-            self.play_sound(self.accounts[username].soundfile)
+
+            if text:
+                self.show_notification("{0}".format(account_name), text.strip("\n"))
+                self.play_sound(self.accounts[account_name].soundfile)
     
-    def on_new_mail(self, username, email, data):
-        print(username)
-    
+
     def source_clicked(self, app, source_id):
         '''called when a label is clicked in the indicator-applet and opens the corresponding gmail page'''
         # TODO: missing username
@@ -333,11 +366,13 @@ class CheckMail(Gio.Application):
         error_label = self.compose_id(username, EMAIL_RETRIEVAL_ERROR)
         self._m_menu.remove_source(error_label)
     
-    def checker_connection_error(self, username, error): 
-        self.check_failed(username, _("Cannot retrieve emails"))
+    def checker_connection_error(self, account_name, ex: Exception) -> None:
+        self.logger.warning("Cannot retrieve emails", exc_info=ex)
+        self.check_failed(account_name, _("Cannot retrieve emails"))
     
-    def checker_auth_failed(self, username, error):
-        self.check_failed(username, _("Authentication failed"))
+    def checker_auth_failed(self, account_name, ex: Exception) -> None:
+        self.logger.warning("Authentication failed", exc_info=ex)
+        self.check_failed(account_name, _("Authentication failed"))
     
     def check_failed(self, username, feed):
         

@@ -165,7 +165,8 @@ class Window(Gtk.Application):
         
         accounts.remove(iter)
         
-    def save(self, widget, data=None):
+    # FIXME not called after OK button pressed
+    def save(self):
         '''saves the entered data and closes the app'''
         
         # Autorun
