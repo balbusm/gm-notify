@@ -100,6 +100,7 @@ class CheckMail(Gio.Application):
         self._has_activated = False
         self._counts = {}
         self.accounts = None
+        self.notification = list()
         self.connect("activate", self.on_activate)
         self.logger = gm_log.get_logger("gm-notify")
 
@@ -188,27 +189,32 @@ class CheckMail(Gio.Application):
             observable = Observable.create(account.checker.connect, ) \
                 .subscribe_on(GtkScheduler()) \
                 .observe_on(GtkScheduler()) \
-                .do_action(on_error=self.checker_connection_error) \
+                .do_action(on_next=lambda atom_message: self.logger.info("> %s: %s",
+                                                                atom_message.account_name,
+                                                                atom_message.response.text),
+                           on_error=self.checker_connection_error) \
                 .on_error_resume_next(Observable.empty()) \
                 .publish()
 
             # successful login flow
             observable.filter(lambda atom_message: atom_message.response.status_code == 200) \
-                .do_action(lambda atom_message: self.logger.info("> %s: %s",
-                                                                atom_message.account_name,
-                                                                atom_message.response.text)) \
                 .map(lambda atom_message:
                                  (atom_message.account_name, atom_message.label, BeautifulSoup(atom_message.response.text, "xml"))) \
-                .do_action(lambda soup_message: self.update_count(*soup_message)) \
-                .subscribe(lambda soup_message: self.new_mail(*soup_message))
+                .do_action(on_next=lambda soup_message: self.update_count(*soup_message)) \
+                .subscribe(on_next=lambda soup_message: self.new_mail(*soup_message),
+                           on_error=self.handle_exception)
             # failed login flow
             observable.filter(lambda atom_message: atom_message.response.status_code != 200) \
                 .map(lambda atom_message: (atom_message.account_name, str(atom_message.response.status_code) + " " + atom_message.response.reason)) \
-                .subscribe(lambda error_message: self.checker_auth_failed(*error_message))
+                .subscribe(on_next=lambda error_message: self.checker_auth_failed(*error_message),
+                           on_error=self.handle_exception)
 
             account.disposable = observable.connect()
 
         return accounts
+
+    def handle_exception(self, ex: Exception) -> None:
+        self.logger.exception("Exception during processing atom message", exc_info=ex)
 
     def indicator_clicked(self):
         '''called when "Google Mail" is clicked in indicator-messages and
@@ -271,7 +277,7 @@ class CheckMail(Gio.Application):
             mail_label = self.compose_id(account_name, label)
             if mail_label in self._counts:
                 last_count = self._counts[mail_label]
-            current_count = int(soup.fullcount.text)
+            current_count = len(soup.find_all("entry"))
 
             # Remove attention if the count has decreased
             if last_count > current_count:
@@ -392,8 +398,13 @@ class CheckMail(Gio.Application):
         '''takes a title and a message to display the email notification. Returns the
         created notification object'''
         
-        n = Notify.Notification.new(title, message, "notification-message-email")
+        n = Notify.Notification.new(title, message, "/home/mati/Develop/gm-notify/gm-notify/data/notification-message-email")
         n.show()
+
+        self.notification.append(n)
+        if self.notification[0]:
+            self.notification[0].update("text " + str(len(self.notification)))
+            self.notification[0].show()
         
         return n
     
