@@ -28,20 +28,20 @@ import gettext
 import webbrowser
 import re
 import signal
-from typing import List, Dict
+from datetime import datetime
+from typing import List, Dict, Optional
 
 from bs4 import BeautifulSoup
 from rx import Observable
 from rx.concurrency import GtkScheduler
 
-from atom_checker import AtomChecker
-
 import gi
 gi.require_version('Gst', '1.0')
 gi.require_version('MessagingMenu', '1.0')
 gi.require_version('Notify', '0.7')
-from gi.repository import Gio, GLib, Gst, MessagingMenu, Notify
+from gi.repository import Gio, Gst, MessagingMenu, Notify
 
+from atom_checker import AtomChecker
 import account_settings_provider
 import gm_log
 
@@ -100,11 +100,12 @@ class CheckMail(Gio.Application):
         self._has_activated = False
         self._counts = {}
         self.accounts = None
-        self.notification = list()
+        self.notification = []
+        self.message_ids: Dict[str, datetime] = {}
         self.connect("activate", self.on_activate)
         self.logger = gm_log.get_logger("gm-notify")
 
-    def play_sound(self, name):
+    def __play_sound(self, name):
         '''Uses GSound to play the music'''
         if name is None:
             return
@@ -221,18 +222,18 @@ class CheckMail(Gio.Application):
         performs a Mail Check'''
         for username, account in self.accounts.items():
             for label in account.labels:
-                self.remove_attention(self.compose_id(username, label))
+                self.remove_attention(self.__compose_source_id(username, label))
             
         for username, account in self.accounts.items():
             account.checker.fetch_inbox()
 
-    def compose_label(self, username, label):
+    def __compose_source_label(self, username, label):
         return "%s (%s)" % (username, label)
 
-    def compose_id(self, username, label):
+    def __compose_source_id(self, username, label):
         return "%s&%s" % (username, label)
     
-    def decompose_id(self, id):
+    def __decompose_source_id(self, id):
         decomposed = id.split("&")
         return (decomposed[0], decomposed[1])
 
@@ -248,13 +249,13 @@ class CheckMail(Gio.Application):
         if label == "inbox" and account.ignore_inbox:
             return False
         elif label in account.labels:
-            mail_label = self.compose_id(account_name, label)
+            mail_label = self.__compose_source_id(account_name, label)
             if not self._m_menu.has_source(mail_label):
                 if label in MAILBOXES_NAMES:
                     name = MAILBOXES_NAMES[label]
                 else:
                     name = label
-                name_label = self.compose_label(account_name, name)
+                name_label = self.__compose_source_label(account_name, name)
                 if label == "inbox":
                     self._m_menu.insert_source_with_string(0, mail_label, None, name_label, _("empty"))
                 else:
@@ -274,7 +275,7 @@ class CheckMail(Gio.Application):
         if self.has_source(account_name, label):
             # Get the last count
             last_count = 0
-            mail_label = self.compose_id(account_name, label)
+            mail_label = self.__compose_source_id(account_name, label)
             if mail_label in self._counts:
                 last_count = self._counts[mail_label]
             current_count = len(soup.find_all("entry"))
@@ -298,39 +299,58 @@ class CheckMail(Gio.Application):
             return
         if self.has_source(account_name, label):
             got_label = True
-            mail_label = self.compose_id(account_name, label)
-            self._m_menu.draw_attention(mail_label)
+            source_id = self.__compose_source_id(account_name, label)
+            self._m_menu.draw_attention(source_id)
         if not got_label:
             return
 
+        ids = []
+
         for entry in soup.find_all("entry"):
-            text = ""
+            message_id = entry.id.text
+            ids.append(message_id)
+            if not self.__is_new_email(message_id, ):
+                continue
 
-            author_name = entry.author.find("name")
-            if author_name:
-                text += author_name.text + ":\n"
-            elif entry.author.email:
-                text += entry.author.email.text + ":\n"
-
-            if entry.title:
-                title = entry.title.text
-                if len(title) > 30:
-                    title = title[:30] + "..."
-            elif entry.summary:
-                title = entry.summary.text[:30] + "..."
-            else:
-                title = _("(no content)")
-            text += "- " + title + "\n"
+            text = self.__get_notification_body(entry)
 
             if text:
-                self.show_notification("{0}".format(account_name), text.strip("\n"))
-                self.play_sound(self.accounts[account_name].soundfile)
-    
+                self.__show_notification(message_id,
+                                         self.__compose_source_id(account_name, label),
+                                         self.__compose_source_label(account_name, label),
+                                         text.strip("\n"))
+                self.__play_sound(self.accounts[account_name].soundfile)
 
-    def source_clicked(self, app, source_id):
+    def __is_new_email(self, message_id: str):
+        if message_id in self.message_ids:
+            return False
+        self.message_ids[message_id] = datetime.now()
+        return True
+
+    def __get_notification_body(self, entry) -> str:
+        text = ""
+        author_name = entry.author.find("name")
+        if author_name:
+            text += author_name.text + ":\n"
+        elif entry.author.email:
+            text += entry.author.email.text + ":\n"
+
+        if entry.title:
+            title = entry.title.text
+            if len(title) > 30:
+                title = title[:30] + "..."
+        elif entry.summary:
+            title = entry.summary.text[:30] + "..."
+        else:
+            title = _("(no content)")
+        text += "- " + title + "\n"
+
+        return text
+
+    def source_clicked(self, app: Optional[str], source_id: str) -> None:
         '''called when a label is clicked in the indicator-applet and opens the corresponding gmail page'''
         # TODO: missing username
-        username, label = self.decompose_id(source_id)
+        username, label = self.__decompose_source_id(source_id)
         if label == EMAIL_RETRIEVAL_ERROR:
             return
         account = self.accounts[username]
@@ -369,7 +389,7 @@ class CheckMail(Gio.Application):
             return "default"
     
     def checker_auth_succeeded(self, username):
-        error_label = self.compose_id(username, EMAIL_RETRIEVAL_ERROR)
+        error_label = self.__compose_source_id(username, EMAIL_RETRIEVAL_ERROR)
         self._m_menu.remove_source(error_label)
     
     def checker_connection_error(self, account_name, ex: Exception) -> None:
@@ -383,36 +403,35 @@ class CheckMail(Gio.Application):
     def check_failed(self, username, feed):
         
         for id in self._counts:
-            local_username, local_label = self.decompose_id(id)
+            local_username, local_label = self.__decompose_source_id(id)
             if local_username == username:
                 self._m_menu.remove_source(id)
             
-        error_id = self.compose_id(username, EMAIL_RETRIEVAL_ERROR)
+        error_id = self.__compose_source_id(username, EMAIL_RETRIEVAL_ERROR)
         if self._m_menu.has_source(error_id):
             return
         self._m_menu.append_source(error_id, None, username + _(" - Cannot retrieve emails"))
         n = Notify.Notification.new(_("Error for ") + username, feed, "messagebox_critical")
         n.show()
     
-    def show_notification(self, title, message):
+    def __show_notification(self, message_id: str, source_id: str, title: str, message: str) -> Notify.Notification:
         '''takes a title and a message to display the email notification. Returns the
         created notification object'''
-        
-        n = Notify.Notification.new(title, message, "/home/mati/Develop/gm-notify/gm-notify/data/notification-message-email")
+
+        n = Notify.Notification.new(title, message, os.path.abspath("data/notification-message-email.svg"))
+        # n.add_action(message_id, title, lambda notification, action, data: self.logger.debug("Got notificaiot"), source_id)
         n.show()
 
-        self.notification.append(n)
-        if self.notification[0]:
-            self.notification[0].update("text " + str(len(self.notification)))
-            self.notification[0].show()
-        
         return n
-    
+
+    def on_notification_clicked(self, notification, action, source_id) -> None:
+        self.source_clicked(None, source_id)
+
     def shutdown(self):
         if self.accounts: 
             for username, account in self.accounts.items():
-                if account.checker : account.checker.stop()
-    
+                if account.checker: account.checker.stop()
+
 cm = CheckMail()
 cm.register()
 if not cm.get_is_remote():

@@ -232,13 +232,13 @@ class AccountConfig:
             .publish()
 
         # successful login flow
-        observable.filter(lambda response: response.status_code == 200) \
-            .map(lambda response: response.text) \
+        observable.filter(lambda atom_message: atom_message.response.status_code == 200) \
+            .map(lambda atom_message: atom_message.response.text) \
             .subscribe(credentials_valid_callback)
 
         # failed login flow
-        observable.filter(lambda response: response.status_code != 200) \
-            .map(lambda response: str(response.status_code) + " " + response.reason) \
+        observable.filter(lambda atom_message: atom_message.response.status_code != 200) \
+            .map(lambda atom_message: str(atom_message.response.status_code) + " " + atom_message.response.reason) \
             .subscribe(self.credentials_invalid)
 
         return observable

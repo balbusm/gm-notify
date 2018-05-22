@@ -23,10 +23,10 @@
 import time
 from datetime import datetime
 import argparse
-from typing import List, Callable, Optional
+from typing import List, Callable, Optional, NamedTuple
 
 import requests
-from requests import Session, Request
+from requests import Session, Request, Response
 from requests.auth import AuthBase
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -141,8 +141,7 @@ class OAuth2(AuthBase):
         return tools.run_flow(flow, storage, flags).access_token
 
 
-class AtomMessage:
-    def __init__(self, account_name, label, response):
-        self.account_name = account_name
-        self.label = label
-        self.response = response
+class AtomMessage(NamedTuple):
+    account_name: str
+    label: str
+    response: Response
