@@ -29,7 +29,7 @@ import webbrowser
 import re
 import signal
 from datetime import datetime
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 
 from bs4 import BeautifulSoup
 from rx import Observable
@@ -96,28 +96,28 @@ class CheckMail(Gio.Application):
         super(CheckMail, self).__init__(application_id="net.launchpad.gm-notify",
             flags=Gio.ApplicationFlags.FLAGS_NONE)
 
-        self.player = None
+        self.__player = None
         self._has_activated = False
-        self._counts = {}
-        self.accounts = None
-        self.notification = []
-        self.message_ids: Dict[str, datetime] = {}
+        self.__counts = {}
+        self.__accounts: Dict[str, Account] = None
+        self.__notification = []
+        self.__message_ids: Dict[str, datetime] = {}
         self.connect("activate", self.on_activate)
-        self.logger = gm_log.get_logger("gm-notify")
+        self.__logger = gm_log.get_logger("gm-notify")
 
     def __play_sound(self, name):
         '''Uses GSound to play the music'''
         if name is None:
             return
         
-        if not self.player: 
+        if not self.__player:
             Gst.init()
-            self.player = Gst.ElementFactory.make("playbin", "player")
+            self.__player = Gst.ElementFactory.make("playbin", "player")
 
-        self.player.set_property("uri", "file://" + name)
-        result = self.player.set_state(Gst.State.PLAYING)
+        self.__player.set_property("uri", "file://" + name)
+        result = self.__player.set_state(Gst.State.PLAYING)
         if result == Gst.StateChangeReturn.FAILURE:
-            self.logger.warning("Unable to play %s", name)
+            self.__logger.warning("Unable to play %s", name)
 
     def on_remote_quit(self, action, args):
         '''Stops the application when the "remote-quit" action is activated'''
@@ -145,7 +145,7 @@ class CheckMail(Gio.Application):
 
         available_accounts = account_settings_provider.list_accounts()
         if not available_accounts:
-            self.logger.info("Failed to get credentials")
+            self.__logger.info("Failed to get credentials")
             self.run_config_app()
             sys.exit(-1)
 
@@ -154,14 +154,14 @@ class CheckMail(Gio.Application):
         self._m_menu.register()
         self._m_menu.connect("activate-source", self.source_clicked)
 
-        self.accounts = self.init_accounts(available_accounts)
+        self.__accounts = self.init_accounts(available_accounts)
 
     def run_config_app(self) -> None:
         # Start gm-notify-config if no credentials are found
         try:
             subprocess.call(get_executable_path("gm-notify-config"))
         except PathNotFound:
-            self.logger.warning(_("gm-notify-config utility was not found"))
+            self.__logger.warning(_("gm-notify-config utility was not found"))
 
     def init_accounts(self, available_accounts_names: List[str]) -> Dict[str, Account]:
         accounts = {}
@@ -190,10 +190,10 @@ class CheckMail(Gio.Application):
             observable = Observable.create(account.checker.connect, ) \
                 .subscribe_on(GtkScheduler()) \
                 .observe_on(GtkScheduler()) \
-                .do_action(on_next=lambda atom_message: self.logger.info("> %s: %s",
+                .do_action(on_next=lambda atom_message: self.__logger.info("> %s: %s",
                                                                 atom_message.account_name,
                                                                 atom_message.response.text),
-                           on_error=self.checker_connection_error) \
+                           on_error=lambda ex: self.checker_connection_error(account_name, ex)) \
                 .on_error_resume_next(Observable.empty()) \
                 .publish()
 
@@ -215,25 +215,25 @@ class CheckMail(Gio.Application):
         return accounts
 
     def handle_exception(self, ex: Exception) -> None:
-        self.logger.exception("Exception during processing atom message", exc_info=ex)
+        self.__logger.exception("Exception during processing atom message", exc_info=ex)
 
     def indicator_clicked(self):
         '''called when "Google Mail" is clicked in indicator-messages and
         performs a Mail Check'''
-        for username, account in self.accounts.items():
+        for username, account in self.__accounts.items():
             for label in account.labels:
                 self.remove_attention(self.__compose_source_id(username, label))
             
-        for username, account in self.accounts.items():
+        for username, account in self.__accounts.items():
             account.checker.fetch_inbox()
 
-    def __compose_source_label(self, username, label):
+    def __compose_source_label(self, username: str, label: str) -> str:
         return "%s (%s)" % (username, label)
 
-    def __compose_source_id(self, username, label):
+    def __compose_source_id(self, username: str, label: str) -> str:
         return "%s&%s" % (username, label)
     
-    def __decompose_source_id(self, id):
+    def __decompose_source_id(self, id: str) -> Tuple[str, str]:
         decomposed = id.split("&")
         return (decomposed[0], decomposed[1])
 
@@ -245,7 +245,7 @@ class CheckMail(Gio.Application):
     def has_source(self, account_name: str, label: str) -> bool:
         '''Returns true if we have this label, or if we don't and it is in our
         mailboxes list, create it'''
-        account = self.accounts[account_name]
+        account = self.__accounts[account_name]
         if label == "inbox" and account.ignore_inbox:
             return False
         elif label in account.labels:
@@ -260,15 +260,15 @@ class CheckMail(Gio.Application):
                     self._m_menu.insert_source_with_string(0, mail_label, None, name_label, _("empty"))
                 else:
                     self._m_menu.append_source_with_string(mail_label, None, name_label, _("empty"))
-                if mail_label in self._counts:
-                    self._m_menu.set_source_count(mail_label, self._counts[mail_label])
+                if mail_label in self.__counts:
+                    self._m_menu.set_source_count(mail_label, self.__counts[mail_label])
             return True
         else:
             return False
 
     def update_count(self, account_name: str, label: str, soup: BeautifulSoup) -> None:
         '''Updates the count for all the mailboxes'''
-        account = self.accounts[account_name]
+        account = self.__accounts[account_name]
         if label == "inbox" and account.ignore_inbox:
             return
 
@@ -276,8 +276,8 @@ class CheckMail(Gio.Application):
             # Get the last count
             last_count = 0
             mail_label = self.__compose_source_id(account_name, label)
-            if mail_label in self._counts:
-                last_count = self._counts[mail_label]
+            if mail_label in self.__counts:
+                last_count = self.__counts[mail_label]
             current_count = len(soup.find_all("entry"))
 
             # Remove attention if the count has decreased
@@ -288,11 +288,11 @@ class CheckMail(Gio.Application):
             # Remove the source if 0 messages, to save space
             else:
                 self._m_menu.remove_source(mail_label)
-            self._counts[mail_label] = current_count
+            self.__counts[mail_label] = current_count
     
     def new_mail(self, account_name: str, label: str, soup: BeautifulSoup) -> None:
         '''Takes mailbox name and titles of mails, to display notification and add indicators'''
-        account = self.accounts[account_name]
+        account = self.__accounts[account_name]
         # aggregate the titles of the messages... cut the string if longer than 30 chars
         got_label = False
         if label == "inbox" and account.ignore_inbox:
@@ -319,12 +319,12 @@ class CheckMail(Gio.Application):
                                          self.__compose_source_id(account_name, label),
                                          self.__compose_source_label(account_name, label),
                                          text.strip("\n"))
-                self.__play_sound(self.accounts[account_name].soundfile)
+                self.__play_sound(self.__accounts[account_name].soundfile)
 
     def __is_new_email(self, message_id: str):
-        if message_id in self.message_ids:
+        if message_id in self.__message_ids:
             return False
-        self.message_ids[message_id] = datetime.now()
+        self.__message_ids[message_id] = datetime.now()
         return True
 
     def __get_notification_body(self, entry) -> str:
@@ -353,7 +353,7 @@ class CheckMail(Gio.Application):
         username, label = self.__decompose_source_id(source_id)
         if label == EMAIL_RETRIEVAL_ERROR:
             return
-        account = self.accounts[username]
+        account = self.__accounts[username]
         
         # Open mail client
         if account.use_mail_client:
@@ -363,12 +363,12 @@ class CheckMail(Gio.Application):
             except:
                 pass
         else:
-            url = self.prep_url(account, label)
+            url = self.__prep_url(account, label)
             webbrowser.open(url)
 
-    def prep_url(self, account, label):
-        url_domain = self.prep_url_domain(account.domain)
-        url_label = self.prep_url_label(label)
+    def __prep_url(self, account, label):
+        url_domain = self.__prep_url_domain(account.domain)
+        url_label = self.__prep_url_label(label)
 
         return ("https://accounts.google.com/AccountChooser?"
                 "Email={0}"
@@ -376,13 +376,13 @@ class CheckMail(Gio.Application):
                 "&service=mail"
                 "&hd={2}").format(account.username, url_label, url_domain)
 
-    def prep_url_label(self, label):
+    def __prep_url_label(self, label: str) -> str:
         if label in MAILBOXES_URLS:
             return "%23{0}".format(MAILBOXES_URLS[label])
         else:
             return "%23label%2F{0}".format(label)
 
-    def prep_url_domain(self, domain):
+    def __prep_url_domain(self, domain: str) -> str:
         if domain:
             return domain
         else:
@@ -393,16 +393,16 @@ class CheckMail(Gio.Application):
         self._m_menu.remove_source(error_label)
     
     def checker_connection_error(self, account_name, ex: Exception) -> None:
-        self.logger.warning("Cannot retrieve emails", exc_info=ex)
+        self.__logger.warning("Cannot retrieve emails " + account_name, exc_info=ex)
         self.check_failed(account_name, _("Cannot retrieve emails"))
     
     def checker_auth_failed(self, account_name, ex: Exception) -> None:
-        self.logger.warning("Authentication failed", exc_info=ex)
+        self.__logger.warning("Authentication failed", exc_info=ex)
         self.check_failed(account_name, _("Authentication failed"))
     
     def check_failed(self, username, feed):
         
-        for id in self._counts:
+        for id in self.__counts:
             local_username, local_label = self.__decompose_source_id(id)
             if local_username == username:
                 self._m_menu.remove_source(id)
@@ -419,7 +419,7 @@ class CheckMail(Gio.Application):
         created notification object'''
 
         n = Notify.Notification.new(title, message, os.path.abspath("data/notification-message-email.svg"))
-        # n.add_action(message_id, title, lambda notification, action, data: self.logger.debug("Got notificaiot"), source_id)
+        # n.add_action(message_id, title, lambda notification, action, data: self.__logger.debug("Got notificaiot"), source_id)
         n.show()
 
         return n
@@ -428,8 +428,8 @@ class CheckMail(Gio.Application):
         self.source_clicked(None, source_id)
 
     def shutdown(self):
-        if self.accounts: 
-            for username, account in self.accounts.items():
+        if self.__accounts:
+            for username, account in self.__accounts.items():
                 if account.checker: account.checker.stop()
 
 cm = CheckMail()
